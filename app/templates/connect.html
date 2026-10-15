@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}เปิดในมือถือ — IC Storage{% endblock %}
+{% block content %}
+<h1>เปิดในมือถือ</h1>
+<div class="connect">
+  <div class="card cqr">
+    <img src="/qr?data={{ u.ip|urlencode }}" alt="QR {{ u.ip }}" width="220" height="220">
+    <div>
+      <b>สแกน QR ด้วยกล้องมือถือ</b>
+      <div class="mono clink">{{ u.ip }}</div>
+    </div>
+  </div>
+  {% if u.mdns %}
+  <div class="card">
+    <b>หรือพิมพ์ชื่อนี้</b> <span class="muted">(Wi-Fi เดียวกัน)</span>
+    <div class="mono clink big"><a href="{{ u.name }}">{{ u.name }}</a></div>
+    <div class="muted">พิมพ์ <b>http://</b> นำหน้าด้วย — Android บางรุ่นไม่รู้จักชื่อ .local ให้ใช้ QR แทน</div>
+  </div>
+  {% endif %}
+  <div class="card">
+    <b>📲 ทำเป็นไอคอนบนหน้าจอ</b> <span class="muted">(ทำครั้งเดียว)</span>
+    <ul class="ctips">
+      <li><b>Android (Chrome):</b> ⋮ → เพิ่มลงในหน้าจอหลัก</li>
+      <li><b>iPhone (Safari):</b> ปุ่มแชร์ → เพิ่มไปยังหน้าจอโฮม</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

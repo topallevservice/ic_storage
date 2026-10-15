@@ -36,3 +36,16 @@ assert matcher._declared(t, names["TJA1145T/FDJ"]["names"])["level"] == "none"  
 a = names["NCV33172DR2G"]["spec"]
 assert matcher._declared(a, names["MC33172VDR2G"]["names"])["level"] == "drop-in"
 print("V16 ALL OK")
+
+# 5) หน้าเปิดในมือถือ + manifest (ไอคอนบนหน้าจอโฮม) ; ตอนทดสอบไม่ประกาศชื่อ mDNS
+from fastapi.testclient import TestClient
+from app.main import app
+from app import lan
+with TestClient(app) as c:
+    h = c.get("/connect").text
+    assert "/qr?data=http" in h and "เพิ่มลงในหน้าจอหลัก" in h
+    m = c.get("/manifest.webmanifest").json()
+    assert m["start_url"] == "/" and m["display"] == "standalone" and len(m["icons"]) == 2
+    assert 'rel="manifest"' in c.get("/").text
+assert lan.PORT == 0 and not lan._state["mdns"]
+print("V16 CONNECT OK")

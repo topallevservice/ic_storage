@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import barcodes, datasheets, identify, images, matcher
+from . import barcodes, datasheets, identify, images, lan, matcher
 from .db import (DATASHEET_DIR, DB_PATH, DEFAULT_COLS, DEFAULT_ROWS, IMAGE_DIR, PHOTO_DIR, STAGING, add_drawer,
                  add_rows, backup_db, connect, create_rect, get_rev, init_db, now, remove_drawer, staging_id)
 from .parts import (PASSIVE, add_alias, find_or_create_part, guess_category, label_value, marking_tokens_of, no_print, norm,
@@ -80,6 +80,7 @@ def _background():
 @app.on_event("shutdown")
 def _shutdown():
     _stop.set()
+    lan.stop()
 
 
 @app.on_event("startup")
@@ -95,6 +96,7 @@ def _startup():
         datasheets.sync(con)
     LIVE["rev"] = get_rev()
     threading.Thread(target=_background, daemon=True, name="ic-live").start()
+    lan.start()   # ชื่อ icstorage.local + พอร์ตเดิม 8800 พาไปที่อยู่ใหม่ (เฉพาะตอนรันผ่าน start_ic_storage.bat)
 
 
 def categories(con):
@@ -1088,23 +1090,36 @@ def part_out(pid: int, qty: int = Form(...), job_ref: str = Form(""), note: str 
 
 # ---------------- ป้ายลิ้นชัก / Export ----------------
 
-def lan_ip() -> str:
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("192.168.1.1", 80))  # ไม่ได้ส่งข้อมูลจริง แค่ให้ OS เลือก interface
-        return s.getsockname()[0]
-    except OSError:
-        return "127.0.0.1"
-    finally:
-        s.close()
+lan_ip = lan.lan_ip
+
+
+@app.get("/connect", response_class=HTMLResponse)
+def connect_page(request: Request):
+    """ลิงก์ + QR สำหรับเปิดในมือถือ (สแกนครั้งเดียว แล้วเพิ่มลงหน้าจอโฮม)"""
+    u = lan.urls()
+    if not lan.PORT:   # รันแบบอื่น (ไม่ผ่านตัวเปิดโปรแกรม) -> ใช้พอร์ตที่เปิดอยู่จริง
+        port = request.url.port or 80
+        u["ip"] = f"http://{lan_ip()}" + ("" if port == 80 else f":{port}")
+    return page(request, "connect.html", u=u)
+
+
+@app.get("/manifest.webmanifest")
+def manifest():
+    """ให้มือถือ "เพิ่มลงหน้าจอโฮม" ได้เป็นไอคอนแอป"""
+    return JSONResponse({
+        "name": "IC Storage — ALL EV SERVICE", "short_name": "IC Storage", "start_url": "/", "scope": "/",
+        "display": "standalone", "background_color": "#eef3f6", "theme_color": "#00aeef", "lang": "th",
+        "icons": [{"src": "/static/brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                  {"src": "/static/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}],
+    }, media_type="application/manifest+json")
 
 
 @app.get("/labels", response_class=HTMLResponse)
 def labels(request: Request, mode: str = "drawer", cabinet: str = "", only_used: str = ""):
     """mode=drawer: ป้ายหน้าลิ้นชัก (QR + รูปไอซีในลิ้นชัก) ; mode=part: ป้ายติดถุง (รูปไอซี + QR + ตำแหน่ง)"""
     # QR ต้องชี้ IP เครื่องในวง LAN (ไม่ใช่ localhost) มือถือถึงจะเปิดได้
-    base = f"http://{lan_ip()}:{request.url.port or 80}"
+    port = request.url.port or 80
+    base = f"http://{lan_ip()}" + ("" if port == 80 else f":{port}")
     with connect() as con:
         cats = {c["code"]: c for c in categories(con)}
         grid = _drawer_grid(con)

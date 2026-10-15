@@ -6,9 +6,13 @@
   <title>{% block title %}IC Storage{% endblock %}</title>
   <meta name="theme-color" content="#00aeef">
   <link rel="icon" type="image/png" href="/static/brand/favicon.png">
-  <link rel="apple-touch-icon" href="/static/brand/allev-mark.png">
+  <link rel="apple-touch-icon" href="/static/brand/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="IC Storage">
   <link rel="stylesheet" href="/static/fonts/fonts.css?v=2">
-  <link rel="stylesheet" href="/static/style.css?v=25">
+  <link rel="stylesheet" href="/static/style.css?v=26">
 </head>
 <body data-rev="{{ rev|default(0) }}" {% block bodyattrs %}{% endblock %}>
 <script src="/static/live.js?v=2"></script>
@@ -22,6 +26,7 @@
   <a href="/putaway" class="{{ 'on' if path.startswith('/putaway') }}">รอระบุช่อง{% if nav_unassigned %} <span class="badge">{{ nav_unassigned }}</span>{% endif %}</a>
   <a href="/labels" class="{{ 'on' if path.startswith('/labels') }}">พิมพ์ป้าย</a>
   <a href="/export.xlsx">Excel</a>
+  <a href="/connect" class="{{ 'on' if path.startswith('/connect') }}" title="เปิดในมือถือ (QR / ลิงก์)">📱 มือถือ</a>
 </header>
 <main>
   {% if request.url.path != '/' %}<button type="button" id="backBtn" class="secondary backbtn noprint" data-fallback="{% block back %}/{% endblock %}">← ย้อนกลับ</button>{% endif %}
