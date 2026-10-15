@@ -1,0 +1,16 @@
+# ข้อมูลใช้งานจริง (ฐานข้อมูลคลัง + รูปถ่าย) และไฟล์สำรอง — ไม่เก็บใน git
+data/
+backup/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

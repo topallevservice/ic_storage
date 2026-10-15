@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}รอระบุช่อง — IC Storage{% endblock %}
+{% block back %}/map{% endblock %}
+{% block content %}
+<h1>รอระบุช่อง <span class="muted">{{ parts|length }} เบอร์</span></h1>
+
+{% for p in parts %}
+{% set cat = cats.get(p.category) %}
+<form class="card waitcard" method="post" action="/assign">
+  <input type="hidden" name="part_id" value="{{ p.id }}">
+  <div class="partsum">
+    <div class="icimg" style="width:64px;height:64px">{% if p.image %}<img src="/images/t_{{ p.image }}" alt="">{% else %}<span class="muted">ไม่มีรูป</span>{% endif %}</div>
+    <div style="flex:1; min-width:0">
+      <a href="/part/{{ p.id }}" class="mpn" style="font-size:17px">{{ p.mpn }}</a>
+      <div><span class="chip" style="background:{{ cat.color }}">{{ p.category }} {{ cat.name_th }}</span></div>
+      <div class="muted">{{ p.qty }} ชิ้น · {{ p.bags }} ถุง · {{ p.suppliers or '' }}</div>
+    </div>
+  </div>
+  <div class="assignrow">
+    <select name="to" required>
+      <option value="">— เลือกช่อง —</option>
+      {% for d in drawers %}<option>{{ d.code }}</option>{% endfor %}
+    </select>
+    <button>ใส่ช่องนี้</button>
+  </div>
+</form>
+{% else %}
+<div class="card"><p class="muted">ไม่มีของรอระบุช่อง ✔</p></div>
+{% endfor %}
+{% endblock %}

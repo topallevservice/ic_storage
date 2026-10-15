@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IC Storage{% endblock %}</title>
+  <meta name="theme-color" content="#00aeef">
+  <link rel="icon" type="image/png" href="/static/brand/favicon.png">
+  <link rel="apple-touch-icon" href="/static/brand/allev-mark.png">
+  <link rel="stylesheet" href="/static/fonts/fonts.css?v=2">
+  <link rel="stylesheet" href="/static/style.css?v=25">
+</head>
+<body data-rev="{{ rev|default(0) }}" {% block bodyattrs %}{% endblock %}>
+<script src="/static/live.js?v=2"></script>
+<script src="/static/ui.js?v=1"></script>
+<header>
+  <a href="/" class="logo" aria-label="ALL EV SERVICE — IC Storage"><img src="/static/brand/allev-mark.png" alt="ALL EV SERVICE"><span class="lt">IC Storage<small>ALL EV SERVICE</small></span></a>
+  {% set path = request.url.path %}
+  <a href="/" class="{{ 'on' if path == '/' }}">ค้นหา / เบิก</a>
+  <a href="/intake" class="{{ 'on' if path.startswith('/intake') }}">สแกนรับของ</a>
+  <a href="/map" class="{{ 'on' if path.startswith('/map') or path.startswith('/loc') }}">แผนผังตู้</a>
+  <a href="/putaway" class="{{ 'on' if path.startswith('/putaway') }}">รอระบุช่อง{% if nav_unassigned %} <span class="badge">{{ nav_unassigned }}</span>{% endif %}</a>
+  <a href="/labels" class="{{ 'on' if path.startswith('/labels') }}">พิมพ์ป้าย</a>
+  <a href="/export.xlsx">Excel</a>
+</header>
+<main>
+  {% if request.url.path != '/' %}<button type="button" id="backBtn" class="secondary backbtn noprint" data-fallback="{% block back %}/{% endblock %}">← ย้อนกลับ</button>{% endif %}
+  {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+  {% if warn %}<div class="warn">{{ warn }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

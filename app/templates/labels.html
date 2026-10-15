@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}พิมพ์ป้าย — IC Storage{% endblock %}
+{% block bodyattrs %}data-live="manual"{% endblock %}
+{% block back %}/{% endblock %}
+{% block content %}
+<div class="noprint card">
+  <h1>พิมพ์ป้าย</h1>
+  <form method="get" action="/labels" class="cabform">
+    <div><label>ชนิดป้าย</label>
+      <select name="mode">
+        <option value="drawer" {{ 'selected' if mode == 'drawer' }}>ป้ายลิ้นชัก</option>
+        <option value="part" {{ 'selected' if mode == 'part' }}>ป้ายติดถุง</option>
+      </select></div>
+    <div><label>ตู้</label>
+      <select name="cabinet"><option value="">ทุกตู้</option>
+        {% for c in cabinets %}<option {{ 'selected' if c == cabinet }}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label><input type="checkbox" name="only_used" value="1" {{ 'checked' if only_used }}> เฉพาะลิ้นชักที่มีของ</label></div>
+    <div><button class="secondary">แสดง</button></div>
+    <div><button type="button" onclick="window.print()">🖨 พิมพ์</button></div>
+  </form>
+  <p class="muted">A4 · ขอบ Minimum · เปิด Background graphics</p>
+</div>
+
+{% if mode == 'part' %}
+<div class="labels drawer-labels">
+  {% for p in parts %}
+  {% set cat = cats.get(p.category) %}
+  <div class="label" style="border-left: 3mm solid {{ cat.color }}">
+    <img class="qr" src="/qr?data={{ (base ~ '/part/' ~ p.id)|urlencode }}" alt="">
+    <div class="ltext">
+      <div class="lc sm">{{ p.mpn }}</div>
+      <div class="lt">{{ p.category }}{% if p.package %} · {{ p.package }}{% endif %}</div>
+      <div class="lt"><b>📍 {{ p.locs }}</b></div>
+      <div class="lm">{{ (p.description or '')[:70] }}</div>
+    </div>
+    {% if p.image %}<img class="chipimg" src="/images/c_{{ p.image }}" alt="">{% endif %}
+  </div>
+  {% else %}
+  <p class="muted">ยังไม่มีอะไหล่ในคลัง</p>
+  {% endfor %}
+</div>
+{% else %}
+<div class="labels drawer-labels">
+  {% for d in drawers %}
+  {% set cat = cats.get(d.main_cat) if d.main_cat else None %}
+  {% set pics = d['items']|selectattr('image')|list %}
+  <div class="label" style="{% if cat %}border-left: 3mm solid {{ cat.color }}{% endif %}">
+    <img class="qr" src="/qr?data={{ (base ~ '/loc/' ~ d.code)|urlencode }}" alt="">
+    <div class="ltext">
+      <div class="lc">{{ d.code }}</div>
+      <div class="lt">แถว {{ d.row }} · ช่อง {{ d.col }}{% if cat %} · {{ cat.code }} {{ cat.name_th }}{% endif %}</div>
+      <div class="lm">{% for it in d['items'] %}{{ it.mpn }}{{ ', ' if not loop.last }}{% endfor %}</div>
+    </div>
+    {% for it in pics[:2] %}<img class="chipimg" src="/images/c_{{ it.image }}" alt="" title="{{ it.mpn }}">{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}ค้นหา / เบิก — IC Storage{% endblock %}
+{% block content %}
+<div class="card scanbox">
+  <div class="searchbar">
+    <input type="search" id="uQ" value="{{ q }}" autocomplete="off" {{ 'autofocus' if not open_pid }} enterkeyhint="search"
+           placeholder="เบอร์ไอซี / ตัวหนังสือบนชิป / LCSC">
+    <button type="button" id="uGo">🔎 ค้นหา</button>
+  </div>
+  <div class="scan2">
+    <label class="btn camera" for="uPhoto">📷 ฉลากถุง</label>
+    <label class="btn secondary" for="uChip">🔍 รูปตัวไอซี</label>
+  </div>
+  <input type="file" id="uPhoto" accept="image/*" capture="environment" hidden>
+  <input type="file" id="uChip" accept="image/*" capture="environment" hidden>
+  <div id="uStatus" class="muted" style="margin-top:6px"></div>
+  <div id="uList" class="ulist"></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b>{{ stats.parts }}</b><span class="muted">เบอร์</span></div>
+  <div class="stat"><b>{{ stats.lots }}</b><span class="muted">ถุง/รีล</span></div>
+  <div class="stat"><b>{{ stats.staging }}</b><span class="muted">รอระบุช่อง</span></div>
+</div>
+
+<div class="card">
+  <h2>เบิกล่าสุด</h2>
+  <div class="tablewrap"><table id="uRecent">
+    <tr><th>เวลา</th><th>เบอร์</th><th>จำนวน</th><th>จากช่อง</th><th>JOB</th><th>ใช้ที่</th></tr>
+    {% for t in recent %}
+    <tr><td class="muted">{{ t.ts[5:16].replace('T', ' ') }}</td>
+      <td><a href="/part/{{ t.pid }}"><b>{{ t.mpn }}</b></a></td><td><b>{{ -t.qty }}</b></td>
+      <td>{{ (t.code or '')|locname }}</td><td>{{ t.job_ref }}</td><td class="muted">{{ t.note }}</td></tr>
+    {% else %}
+    <tr class="empty"><td colspan="6" class="muted">ยังไม่มีการเบิก</td></tr>
+    {% endfor %}
+  </table></div>
+</div>
+
+<script src="/static/out.js?v=6"></script>
+<script src="/static/match.js?v=4"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const CATS = {{ cat_colors|tojson }};
+const status = (t) => { $("uStatus").innerHTML = t; };
+const card = async (pid) => (await fetch("/api/part/" + pid + "/card", { cache: "no-store" })).json();
+
+function openOut(list, note) {
+  OutSheet.open(list, { note, onDone: addRecent, onUndo: () => location.reload() });
+}
+
+function addRecent(r) {
+  const t = $("uRecent"), e = t.querySelector(".empty");
+  if (e) e.remove();
+  const tr = t.insertRow(1), d = new Date();
+  tr.innerHTML = `<td class="muted">${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${d.toTimeString().slice(0, 5)}</td>
+    <td><a href="/part/${r.part_id}"><b>${esc(r.mpn)}</b></a></td><td><b>${r.taken}</b></td>
+    <td>${esc(r.loc === "STAGING" ? "รอระบุช่อง" : r.loc)}</td><td>${esc(r.job_ref)}</td><td class="muted">${esc(r.note)}</td>`;
+  // อัปเดตยอดในผลค้นหาที่ยังแสดงอยู่
+  const item = shown.find((p) => p.part_id === r.part_id);
+  if (item) { item.qty = r.left; item.locs.forEach((l) => { if (l.code === r.loc) l.qty = r.left_here; }); showList(shown); }
+}
+
+// ผลลัพธ์ (ค้นหา / สแกนฉลาก / รูปชิป): ดูตำแหน่ง + ยอด แล้วเลือก เบิก หรือ ดูข้อมูล
+let shown = [];
+function showList(items) {
+  shown = items;
+  $("uList").innerHTML = items.map((p, i) => `
+    <div class="rcard ${p.level === "weak" ? "weak" : ""}">
+      ${p.image ? `<img src="/images/t_${esc(p.image)}" alt="">` : `<span class="noimg">ไม่มีรูป</span>`}
+      <div class="rinfo">
+        <div><b class="mono">${esc(p.mpn)}</b>
+          <span class="chip" style="background:${CATS[p.category] || "#adb5bd"}">${esc(p.category)}</span>
+          ${p.pct ? `<span class="pct">${p.pct}%</span>` : ""}</div>
+        ${p.marking ? `<div class="mk">🔤 บนชิป: <span class="mono">${esc(p.marking)}</span></div>` : ""}
+        ${p.description || p.package ? `<div class="muted rdesc">${esc([p.package, p.description].filter(Boolean).join(" · "))}</div>` : ""}
+        <div class="rloc">📍 ${p.locs.length ? p.locs.map((l) => l.code === "STAGING"
+            ? `<a class="loc wait" href="/putaway">รอระบุช่อง</a>`
+            : `<a class="loc" href="/loc/${esc(l.code)}">${esc(l.code)}</a>`).join(" ") : `<span class="muted">ของหมด</span>`}
+          · คงเหลือ <b>${p.qty}</b></div>
+        ${p.reasons ? `<div class="muted rdesc">${esc(p.reasons.join(" · "))}</div>` : ""}
+      </div>
+      <div class="ract">
+        <button type="button" class="rout" data-i="${i}" ${p.qty ? "" : "disabled"}>🛒 เบิก</button>
+        <a class="btn secondary" href="/part/${p.part_id}">ℹ️ ข้อมูล</a>
+      </div>
+    </div>`).join("");
+  $("uList").querySelectorAll(".rout").forEach((b) => b.onclick = () => {
+    const p = shown[+b.dataset.i];
+    openOut([Object.assign({}, p, { level: "", pct: 0, reasons: null })]);
+  });
+}
+
+async function post(url, body, btn) {
+  btn && btn.classList.add("busy");
+  try {
+    const r = await fetch(url, { method: "POST", body });
+    if (!r.ok) throw new Error("เซิร์ฟเวอร์ตอบ " + r.status);
+    return await r.json();
+  } finally { btn && btn.classList.remove("busy"); }
+}
+
+// ผลสแกนฉลาก -> การ์ดเบอร์ในคลัง (กด เบิก / ข้อมูล ต่อได้ทันที)
+async function fromScan(items) {
+  const known = items.filter((it) => it.part_id);
+  if (!known.length) {
+    const it = items[0] || {};
+    const sim = (it.similar || []).filter((s) => s.id);
+    status(`❌ ไม่มี <b class="mono">${esc(it.mpn || "?")}</b> ในคลัง`);
+    showList(sim.length ? await Promise.all(sim.map((s) => card(s.id))) : []);
+    if (it.mpn) {   // เทียบ datasheet หาตัวแทนให้ แล้วแสดงป๊อปอัพให้เลือก
+      const r = await getMatch(it.mpn);
+      showMatchStatus(r);
+      openMatch(r, { source: "label" });
+    }
+    return;
+  }
+  status("✔ " + known.map((it) => `<b class="mono">${esc(it.mpn)}</b>`).join(", "));
+  showList(await Promise.all(known.map((it) => card(it.part_id))));
+}
+
+$("uPhoto").addEventListener("change", async () => {
+  const f = $("uPhoto").files[0]; if (!f) return;
+  status("⏳ กำลังอ่านฉลาก..."); showList([]);
+  const fd = new FormData(); fd.append("photo", f); fd.append("keep", "0");
+  try {
+    const d = await post("/api/decode-image", fd, document.querySelector('label[for="uPhoto"]'));
+    if (!d.items.length) status("❌ อ่านไม่ได้ — ถ่ายใกล้ขึ้น หรือพิมพ์เบอร์");
+    else await fromScan(d.items);
+  } catch (e) { status("❌ " + esc(e.message)); }
+  $("uPhoto").value = "";
+});
+
+$("uChip").addEventListener("change", async () => {
+  const f = $("uChip").files[0]; if (!f) return;
+  status("⏳ กำลังค้นจากรูป..."); showList([]);
+  const fd = new FormData(); fd.append("photo", f); fd.append("keep", "0");
+  try {
+    const d = await post("/api/identify-ic", fd, document.querySelector('label[for="uChip"]'));
+    if (d.match) openMatch(d.match, { source: "photo", photo: URL.createObjectURL(f) });
+    if (!d.candidates.length) {
+      status("❌ ไม่พบในคลัง" + (d.tokens.length ? " — อ่านได้: " + d.tokens.map((t) =>
+        `<button type="button" class="mini secondary tok">${esc(t)}</button>`).join(" ") : ""));
+      document.querySelectorAll(".tok").forEach((b) => b.onclick = () => { $("uQ").value = b.textContent; doSearch(); });
+      return;
+    }
+    const list = await Promise.all(d.candidates.map(async (c) =>
+      Object.assign(await card(c.part_id), { level: c.level, pct: Math.round(c.score * 100), reasons: c.reasons })));
+    status(`<div class="idq"><img src="${URL.createObjectURL(f)}" alt="">
+      <div><div class="muted">อ่านได้</div><div class="mono">${esc(d.lines.join(" / ") || "-")}</div></div></div>`);
+    showList(list);
+  } catch (e) { status("❌ " + esc(e.message)); }
+  $("uChip").value = "";
+});
+
+// ---------------- ค้นแบบเทียบทุกแหล่ง (หลังบ้าน /api/match) ----------------
+// พิมพ์: แสดงผลในหน้า + แถบสรุป (ไม่เปิดป๊อปอัพเองระหว่างพิมพ์) ; Enter / 🔎 เทียบ / รูปชิป / ฉลากไม่เจอ = เปิดป๊อปอัพให้เลือก
+let lastMatch = null;
+const getMatch = async (q) => (await fetch("/api/match?q=" + encodeURIComponent(q), { cache: "no-store" })).json();
+function openMatch(r, o = {}) {
+  lastMatch = r;
+  MatchSheet.open(r, Object.assign({ onDone: addRecent, onUndo: () => location.reload() }, o));
+}
+function showMatchStatus(r) {
+  const [tone, text] = MatchSheet.summary(r);
+  const more = r.status !== "found" || r.substitutes.length;
+  status(`<div class="mstat ${tone}">${text}${more || r.matches.length > 1 ? ` <button type="button" class="mini" id="uOpenMatch">📋 ${r.substitutes.length ? "ดูตัวแทน" : "ดูผล"}</button>` : ""}</div>`);
+  const b = $("uOpenMatch");
+  if (b) b.onclick = () => openMatch(r, { source: "text" });
+}
+const asItem = (m) => Object.assign({}, m, {
+  pct: m.pct, level: m.level === "strong" ? "" : "weak",
+  reasons: [...m.evidence].sort((x, y) => y.score - x.score).slice(0, 1).map((e) => e.text),
+});
+
+let timer, seq = 0;
+async function doSearch() {
+  const q = $("uQ").value.trim(), my = ++seq;
+  history.replaceState(null, "", q ? "/?q=" + encodeURIComponent(q) : "/");   // กดย้อนกลับจากหน้าข้อมูลแล้วผลยังอยู่
+  Nav.update();
+  if (q.length < 2) { showList([]); status(""); lastMatch = null; return null; }
+  const r = await getMatch(q);
+  if (my !== seq) return null;   // พิมพ์ต่อไปแล้ว ผลเก่ามาช้า ไม่ต้องแสดง
+  lastMatch = r;
+  showList(r.matches.map(asItem));
+  showMatchStatus(r);
+  return r;
+}
+async function searchAndOpen() {
+  clearTimeout(timer);
+  const q = $("uQ").value.trim();
+  if (!q) return;
+  let r = await doSearch();
+  if (r && !r.matches.some((m) => m.level === "strong")) {   // ข้อความจากเครื่องสแกน (QR LCSC / DataMatrix) -> แปลงเป็นเบอร์
+    const fd = new FormData(); fd.append("text", q);
+    const d = await post("/api/parse", fd);
+    if (d.items.some((it) => it.part_id)) { await fromScan(d.items); return; }
+    if (d.items[0] && d.items[0].mpn && d.items[0].source !== "TEXT" && d.items[0].mpn !== q) r = await getMatch(d.items[0].mpn);
+  }
+  if (r) openMatch(r, { source: "text" });
+}
+$("uQ").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(doSearch, 250); });
+$("uQ").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  searchAndOpen();
+});
+$("uGo").onclick = searchAndOpen;
+
+// เรียลไทม์: ยอด/ช่องในผลลัพธ์, สถิติ และ "เบิกล่าสุด" อัปเดตเองเมื่อมีการเปลี่ยนแปลงจากเครื่องไหนก็ได้
+Live.on(async () => {
+  if ($("uQ").value.trim().length >= 2) await doSearch();
+  else if (shown.length) {  // ผลจากสแกนฉลาก/รูปชิป: ดึงยอดใหม่ทีละใบ คง % และเหตุผลไว้
+    const fresh = await Promise.all(shown.map(async (p) => {
+      const c = await card(p.part_id);
+      return c.part_id ? Object.assign(c, { level: p.level, pct: p.pct, reasons: p.reasons }) : null;
+    }));
+    showList(fresh.filter(Boolean));
+  }
+  const doc = new DOMParser().parseFromString(await (await fetch("/", { cache: "no-store" })).text(), "text/html");
+  for (const sel of ["#uRecent", ".stats"]) {
+    const a = document.querySelector(sel), b = doc.querySelector(sel);
+    if (a && b) a.innerHTML = b.innerHTML;
+  }
+});
+{% if q %}doSearch();{% endif %}
+window.addEventListener("pageshow", (e) => { if (e.persisted && $("uQ").value.trim()) doSearch(); });
+{% if open_pid %}card({{ open_pid }}).then((c) => { if (c.part_id) { showList([c]); openOut([c]); } });{% endif %}
+</script>
+{% endblock %}

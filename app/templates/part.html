@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ p.mpn }} — IC Storage{% endblock %}
+{% block back %}/{% endblock %}
+{% block content %}
+<h1>{{ p.mpn }} <span class="chip" style="background:{{ p.cat_color }}">{{ p.category }} {{ p.cat_name }}</span></h1>
+
+{% if p.marking %}<div class="chiptext" title="ข้อความบนตัวชิป">🔤 <span class="mono">{{ p.marking }}</span></div>{% endif %}
+
+<div class="card">
+  <div class="muted">{{ p.manufacturer }} · {{ p.package }}</div>
+  <div style="margin-bottom:8px">{{ p.description }}</div>
+  {% set back = '/part/' ~ p.id %}
+  {% include "_gallery.html" %}
+</div>
+
+<form class="card markbox" method="post" action="/part/{{ p.id }}/marking">
+  <h2>🔤 ข้อความบนตัวชิป</h2>
+  {% if not p.marking %}<div class="warnbox">⚠ ยังไม่มีข้อความบนตัวชิป</div>{% endif %}
+  {% include "_marking_input.html" %}
+  <div style="margin-top:8px"><button>💾 บันทึก</button></div>
+</form>
+
+<div class="card">
+  <h2>อยู่ที่ไหน</h2>
+  <div class="tablewrap"><table>
+    <tr><th>ตำแหน่ง</th><th>จำนวน</th><th>ผู้ขาย</th><th>Lot / D/C</th><th>รับเมื่อ</th></tr>
+    {% for l in lots %}
+    <tr style="{{ 'opacity:.45' if l.qty == 0 }}">
+      <td>{% if l.loc_code == 'STAGING' %}<a class="loc wait" href="/putaway">รอระบุช่อง</a>{% else %}<a class="loc" href="/loc/{{ l.loc_code }}">{{ l.loc_code }}</a>{% endif %}</td>
+      <td><b>{{ l.qty }}</b></td>
+      <td>{{ l.supplier }} <span class="muted">{{ l.supplier_pn }}</span></td>
+      <td class="muted">{{ l.lot }} {{ l.date_code }}</td>
+      <td class="muted">{{ (l.received_at or '')[:10] }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+
+{% if ds %}{% set s = ds.spec %}
+<div class="card dscard">
+  <h2>📄 Datasheet
+    {% if ds.pdf_url %}<a class="btn mini" href="{{ ds.pdf_url }}" target="_blank" rel="noopener">เปิด PDF</a>{% endif %}
+    {% if ds.summary_url %}<a class="btn mini secondary" href="{{ ds.summary_url }}" target="_blank" rel="noopener">สรุป .md</a>{% endif %}</h2>
+  <div><b>{{ s.function_th }}</b></div>
+  <div class="muted">{{ s.manufacturer }} · {{ s.family }} · {{ s.package.name }}{% if s.package.pins %} ({{ s.package.pins }} ขา){% endif %}
+    {% if s.marking %} · marking: <span class="mono">{{ s.marking|join(', ') }}</span>{% endif %}</div>
+  <div class="muted">{{ s.function }}</div>
+
+  {% if s.pinout %}
+  <details open><summary><b>ขา (pinout)</b></summary>
+    <div class="pins">{% for k, v in s.pinout.items() %}<span><b>{{ k }}</b> {{ v }}</span>{% endfor %}</div>
+  </details>
+  {% endif %}
+
+  <details><summary><b>ค่าสำคัญ</b> ({{ s.params|length }})</summary>
+    <div class="tablewrap"><table class="params">
+      {% for k, v in s.params.items() %}<tr><td class="muted">{{ k }}</td><td>{{ (v|map('string')|join(' – ')|replace('None', '?')) if v is iterable and v is not string else v }}</td></tr>{% endfor %}
+    </table></div>
+    {% if s.features %}<ul>{% for f in s.features %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
+  </details>
+
+  {% if ds.subs %}
+  <details open><summary><b>ตัวแทน / เทียบเคียง</b></summary>
+    <div class="tablewrap"><table>
+      <tr><th>เบอร์</th><th>ระดับ</th><th>ในคลัง</th><th>หมายเหตุ</th></tr>
+      {% for x in ds.subs %}
+      <tr>
+        <td class="mono">{% if x.stock %}<a href="/part/{{ x.stock.id }}">{{ x.mpn }}</a>{% else %}{{ x.mpn }}{% endif %}</td>
+        <td><span class="lvl {{ x.level }}">{{ x.level_th }}</span></td>
+        <td>{% if x.stock and x.stock.qty %}<b>{{ x.stock.qty }}</b> @ {% for c in x.stock.locs %}<span class="loc">{{ c }}</span> {% endfor %}
+            {% elif x.stock %}<span class="muted">หมด</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td class="muted">{{ x.note }}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </details>
+  {% endif %}
+
+  {% if s.repair_notes %}
+  <details><summary><b>ตรวจ / ซ่อม</b></summary><ul>{% for r in s.repair_notes %}<li>{{ r }}</li>{% endfor %}</ul></details>
+  {% endif %}
+</div>
+{% else %}
+<div class="card muted">📄 ยังไม่มี datasheet</div>
+{% endif %}
+
+<form class="card" method="post" action="/part/{{ p.id }}/out">
+  <h2>เบิก / คืน / ปรับยอด <a class="btn mini" href="/?pid={{ p.id }}" style="float:right">⚡ เบิกด่วน</a></h2>
+  <div class="grid2">
+    <div><label>ประเภท</label><select name="tx_type">
+      <option value="OUT">เบิกออก (ตัดสต๊อก)</option><option value="RETURN">คืนเข้าคลัง</option><option value="ADJUST">ตรวจนับ: ตั้งยอดถุงล่าสุด</option></select></div>
+    <div><label>จำนวน</label><input type="number" name="qty" min="0" value="1" required></div>
+    <div><label>JOB งานซ่อม</label><input type="text" name="job_ref" placeholder="JOB-2026-10-14_BMS ..."></div>
+    <div><label>หมายเหตุ / Ref Des</label><input type="text" name="note" placeholder="U12 บนบอร์ด"></div>
+  </div>
+  <div style="margin-top:10px"><button>บันทึก</button></div>
+</form>
+
+<form class="card" method="post" action="/part/{{ p.id }}/edit">
+  <h2>ข้อมูลอะไหล่</h2>
+  <div class="grid2">
+    <div><label>หมวด</label><select name="category">
+      {% for c in cats %}<option value="{{ c.code }}" {{ 'selected' if c.code == p.category }}>{{ c.code }} — {{ c.name_th }}</option>{% endfor %}</select></div>
+    <div><label>ผู้ผลิต</label><input type="text" name="manufacturer" value="{{ p.manufacturer }}"></div>
+    <div><label>แพ็กเกจ</label><input type="text" name="package" value="{{ p.package }}"></div>
+  </div>
+  <label style="margin-top:8px">คำอธิบาย</label><input type="text" name="description" value="{{ p.description }}">
+  <label style="margin-top:8px">บันทึก</label><textarea name="notes" rows="2">{{ p.notes }}</textarea>
+  <button>💾 บันทึก</button>
+</form>
+
+<div class="card">
+  <h2>ประวัติการเคลื่อนไหว</h2>
+  <div class="tablewrap"><table>
+    <tr><th>เวลา</th><th>ประเภท</th><th>จำนวน</th><th>ตำแหน่ง</th><th>JOB</th><th>หมายเหตุ</th></tr>
+    {% for t in tx %}
+    <tr><td class="muted">{{ t.ts.replace('T',' ') }}</td><td>{{ t.type }}</td><td>{{ t.qty }}</td>
+      <td>{{ t.loc_code or '' }}</td><td>{{ t.job_ref }}</td><td class="muted">{{ t.note }}</td></tr>
+    {% endfor %}
+  </table></div>
+</div>
+{% endblock %}

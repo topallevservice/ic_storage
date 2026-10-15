@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ loc.code }} — IC Storage{% endblock %}
+{% block back %}/map{% endblock %}
+{% block content %}
+<h1><span class="loc" style="font-size:24px">{{ loc.code }}</span>
+  {% if loc.kind == 'drawer' %}<span class="muted">ตู้ {{ loc.cabinet }} · แถว {{ loc.row }} · ช่อง {{ loc.col }}</span>{% endif %}</h1>
+
+<div class="card">
+  <div class="tablewrap"><table>
+    <tr><th>MPN</th><th>หมวด</th><th>จำนวน</th><th>ผู้ขาย</th><th>ย้ายไป</th></tr>
+    {% for l in lots %}
+    <tr>
+      <td style="display:flex; gap:8px">{% if l.image %}<img class="thumb" src="/images/t_{{ l.image }}" alt="">{% endif %}
+        <div><a href="/part/{{ l.pid }}"><b>{{ l.mpn }}</b></a><div class="muted">{{ l.description }}</div></div></td>
+      <td><span class="chip" style="background:{{ cats[l.category].color }}">{{ l.category }}</span></td>
+      <td><b>{{ l.qty }}</b></td>
+      <td>{{ l.supplier }} <span class="muted">{{ l.supplier_pn }}</span></td>
+      <td>
+        <form method="post" action="/lot/{{ l.id }}/move" style="display:flex; gap:4px">
+          <input type="hidden" name="back" value="/loc/{{ loc.code }}">
+          <select name="to" style="min-width:110px">{% for d in drawers %}<option value="{{ d.code }}" {{ 'selected' if d.code == loc.code }}>{{ d.code|locname }}</option>{% endfor %}</select>
+          <button class="secondary">ย้าย</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">ลิ้นชักว่าง</td></tr>
+    {% endfor %}
+  </table></div>
+</div>
+
+{% if waiting %}
+<div class="card">
+  <h2>⏳ รอระบุช่อง</h2>
+  {% for w in waiting %}
+  <form method="post" action="/assign" class="waitrow">
+    <input type="hidden" name="part_id" value="{{ w.id }}"><input type="hidden" name="to" value="{{ loc.code }}">
+    <input type="hidden" name="back" value="/loc/{{ loc.code }}">
+    {% if w.image %}<img class="thumb" src="/images/t_{{ w.image }}" alt="">{% else %}<span class="thumb"></span>{% endif %}
+    <div style="flex:1; min-width:0"><b>{{ w.mpn }}</b><div class="muted">{{ w.category }} · {{ w.qty }} ชิ้น · {{ w.bags }} ถุง</div></div>
+    <button class="mini">ใส่ช่องนี้</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if loc.kind == 'drawer' %}
+<form class="card cabform" method="post" action="/loc/{{ loc.code }}/capacity">
+  <div><label>ความจุ (ถุง)</label>
+    <input type="number" name="capacity" min="1" value="{{ loc.capacity }}"></div>
+  <div><button class="secondary">ตั้งความจุ</button></div>
+</form>
+{% if not lots %}
+<form class="card" method="post" action="/loc/{{ loc.code }}/remove" data-confirm="ต้องการลบช่อง {{ loc.code }} จริง ๆ ใช่ไหม?">
+  <input type="hidden" name="back" value="/map">
+  <button class="secondary danger">🗑 ลบช่องนี้</button>
+</form>
+{% endif %}
+{% endif %}
+{% endblock %}

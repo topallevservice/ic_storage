@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}ตัดกรอบรูป — IC Storage{% endblock %}
+{% block bodyattrs %}data-live="manual"{% endblock %}
+{% block back %}{{ back }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<h1>ตัดกรอบรูปไอซี</h1>
+<div class="card">
+  <div style="max-height:70vh"><img id="img" src="/images/{{ img }}" alt="" style="max-width:100%; display:block"></div>
+  <form method="post" action="/crop/{{ img }}" id="f" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+    <input type="hidden" name="x" id="x" value="0"><input type="hidden" name="y" id="y" value="0">
+    <input type="hidden" name="w" id="w" value="1"><input type="hidden" name="h" id="h" value="1">
+    <input type="hidden" name="back" value="{{ back }}">
+    <button class="big">✂ บันทึก</button>
+    <button class="big secondary" name="auto" value="1">🤖 ตัดอัตโนมัติ</button>
+    <a class="btn secondary big" href="{{ back }}">ยกเลิก</a>
+  </form>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+  const img = document.getElementById("img");
+  const cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, autoCropArea: 0.6, background: false });
+  document.getElementById("f").addEventListener("submit", () => {
+    const d = cropper.getData(true), W = cropper.getImageData().naturalWidth, H = cropper.getImageData().naturalHeight;
+    document.getElementById("x").value = d.x / W; document.getElementById("y").value = d.y / H;
+    document.getElementById("w").value = d.width / W; document.getElementById("h").value = d.height / H;
+  });
+</script>
+{% endblock %}

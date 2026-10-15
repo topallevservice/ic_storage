@@ -1,0 +1,533 @@
+:root {
+  /* ฟอนต์ในตัวโปรแกรม (static/fonts): ไทย/อังกฤษทางการอ่านง่าย + สัญลักษณ์ช่าง (Ω µ ± ≤ → ↔) ; อีโมจิใช้ของเครื่อง */
+  --font-ui: "Sarabun", "IC Symbols", "Segoe UI", "Leelawadee UI", Tahoma, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --font-mono: "JetBrains Mono", "Sarabun", "IC Symbols", Consolas, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --bg: #f4f5f7; --card: #fff; --text: #1d2125; --muted: #6b7280; --line: #dfe3e8;
+  --brand: #0b7a75; --brand-2: #e6f4f3; --warn: #b54708; --warn-bg: #fff4e5; --ok: #067647; --ok-bg: #e7f6ec;
+  --danger: #b42318;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-ui);
+       background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.5; }
+a { color: var(--brand); text-decoration: none; }
+header { background: #102a2a; color: #fff; padding: 10px 16px; display: flex; gap: 6px; align-items: center;
+         flex-wrap: wrap; position: sticky; top: 0; z-index: 10; }
+header .logo { font-weight: 700; margin-right: 12px; letter-spacing: .5px; }
+header a { color: #cfe; padding: 6px 10px; border-radius: 6px; }
+header a.on, header a:hover { background: rgba(255,255,255,.12); color: #fff; }
+main { max-width: 1200px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 22px; margin: 4px 0 14px; }
+h2 { font-size: 17px; margin: 18px 0 8px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.muted { color: var(--muted); font-size: 13px; }
+.msg { background: var(--ok-bg); color: var(--ok); padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+.warn { background: var(--warn-bg); color: var(--warn); padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+input, select, textarea, button { font: inherit; }
+input[type=text], input[type=number], input[type=search], select, textarea {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+input:focus, select:focus { outline: 2px solid var(--brand); border-color: transparent; }
+button, .btn { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px;
+               cursor: pointer; display: inline-block; }
+button.secondary, .btn.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+button.big { padding: 14px 20px; font-size: 17px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tablewrap { overflow-x: auto; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; color: #fff; white-space: nowrap; }
+.loc { font-family: var(--font-mono); font-weight: 700; background: var(--brand-2); color: var(--brand);
+       padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.stat b { font-size: 26px; display: block; }
+.searchbar { display: flex; gap: 8px; }
+.searchbar input { font-size: 18px; padding: 12px; }
+
+/* แผนผังตู้ */
+.cabinet { display: grid; gap: 6px; }
+.drawer { border: 2px solid var(--line); border-radius: 8px; background: #fff; padding: 6px; min-height: 92px;
+          display: flex; flex-direction: column; gap: 3px; color: var(--text); overflow: hidden; }
+.drawer:hover { border-color: var(--brand); }
+.drawer .code { font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+.drawer .mpns { font-size: 11px; color: var(--muted); line-height: 1.25; max-height: 42px; overflow: hidden; }
+.drawer .bar { height: 5px; background: #eceff2; border-radius: 3px; overflow: hidden; margin-top: auto; }
+.drawer .bar i { display: block; height: 100%; background: var(--brand); }
+.drawer.planned { border-style: dashed; }
+.gap { width: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+
+/* รับของ */
+.scanbox input { font-size: 18px; padding: 14px; font-family: var(--font-mono); }
+.found { border-left: 4px solid var(--brand); }
+.cands button { margin: 3px 3px 0 0; padding: 4px 9px; font-size: 13px; }
+#preview img { max-width: 100%; max-height: 220px; border-radius: 8px; }
+
+/* ป้าย */
+@media print {
+  header, .noprint { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: none; }
+}
+.labels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+.label { border: 1px dashed #999; padding: 3mm; display: flex; gap: 3mm; align-items: flex-start; break-inside: avoid;
+         min-height: 30mm; background: #fff; }
+.label img { width: 22mm; height: 22mm; }
+.label .lc { font-family: var(--font-mono); font-size: 20px; font-weight: 800; }
+.label .lt { font-size: 11px; }
+.label .lm { font-size: 9.5px; color: #333; line-height: 1.2; }
+
+@media (max-width: 700px) {
+  main { padding: 12px; }
+  .drawer { min-height: 70px; padding: 4px; }
+  .drawer .mpns { display: none; }
+  .labels { grid-template-columns: 1fr 1fr; }
+}
+
+/* v2: รับของ / รูปไอซี / ตู้ */
+.step { font-weight: 600; margin-bottom: 8px; }
+.step b { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+          background: var(--brand); color: #fff; font-size: 13px; margin-right: 6px; }
+.btn.camera { width: 100%; text-align: center; font-size: 18px; padding: 16px; }
+.partsum { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+.partsum .mpn { font-size: 22px; font-weight: 700; font-family: var(--font-mono); word-break: break-all; }
+.icimg { width: 96px; height: 96px; border: 1px solid var(--line); border-radius: 8px; flex: none;
+         display: grid; place-items: center; overflow: hidden; background: #fafafa; text-align: center; font-size: 11px; }
+.icimg img { width: 100%; height: 100%; object-fit: cover; }
+.locked { background: var(--brand-2); border: 2px solid var(--brand); border-radius: 8px; padding: 10px; }
+.bigin { font-size: 20px !important; padding: 12px !important; }
+.thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+.thumb.lg { width: 160px; height: 160px; }
+.drawer .imgs { display: flex; gap: 2px; flex-wrap: wrap; }
+.drawer .imgs img { width: 26px; height: 26px; object-fit: cover; border-radius: 4px; }
+.cabform { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; align-items: end; }
+.cabhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* ป้าย v2 */
+.labels.drawer-labels { grid-template-columns: repeat(2, 1fr); }
+.label .pics { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 1.5mm; }
+.label .pic { width: 17mm; text-align: center; font-size: 7px; line-height: 1.1; word-break: break-all; }
+.label .pic img { width: 17mm; height: 13mm; object-fit: cover; border: 1px solid #ccc; border-radius: 1mm; }
+.label .pic .noimg { width: 17mm; height: 13mm; border: 1px dashed #bbb; display: grid; place-items: center; color: #999; }
+.label.part-label { min-height: 26mm; }
+.label.part-label .pimg { width: 22mm; height: 22mm; object-fit: cover; border: 1px solid #ccc; border-radius: 1mm; }
+.label.part-label .lc { font-size: 13px; word-break: break-all; }
+@media (max-width: 700px) { .labels.drawer-labels { grid-template-columns: 1fr; } }
+
+/* v3: ลิ้นชักขนาดเท่ากันทุกช่อง + มือถือ */
+:root { --split-gap: 10px; }
+.cabinet { gap: 6px; }
+.drawer { aspect-ratio: 1 / 1.05; min-height: 0; min-width: 0; padding: 5px; }
+.drawer .code { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer .chip { font-size: 10px; padding: 1px 6px; }
+.drawer .cnt { font-size: 10px; color: var(--muted); }
+.drawer .imgs img { width: 30px; height: 30px; }
+button.mini, .btn.mini { padding: 4px 9px; font-size: 12px; border-radius: 6px; }
+button.danger, .btn.danger { color: var(--danger) !important; border-color: var(--danger) !important; }
+.gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.gimg { width: 120px; border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: #fff; }
+.gimg img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; display: block; }
+.gimg.primary { border: 2px solid var(--brand); }
+.gimg .gbtns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.gimg.add { display: grid; place-items: center; text-align: center; border-style: dashed; min-height: 120px; cursor: pointer; }
+.gimg.add label { cursor: pointer; color: var(--brand); font-size: 14px; }
+@media (max-width: 700px) {
+  :root { --split-gap: 5px; }
+  body { font-size: 14px; }
+  header { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; gap: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  header::-webkit-scrollbar { display: none; }
+  header .logo { font-size: 14px; margin-right: 4px; white-space: nowrap; }
+  header a { padding: 6px 8px; font-size: 13px; white-space: nowrap; }
+  main { padding: 10px; }
+  h1 { font-size: 18px; margin-bottom: 10px; }
+  h2 { font-size: 15px; }
+  .card { padding: 10px; }
+  .cabinet { gap: 4px; }
+  .drawer { padding: 3px; border-width: 1.5px; border-radius: 6px; gap: 2px; }
+  .drawer .code { font-size: 9.5px; }
+  .drawer .chip { display: none; }
+  .drawer .imgs img { width: 18px; height: 18px; border-radius: 3px; }
+  .drawer .cnt { display: none; }
+  .drawer .bar { height: 3px; }
+  .gimg { width: calc(50% - 5px); }
+  .cabhead button { padding: 6px 10px; font-size: 13px; }
+}
+
+/* v3 ป้าย: QR ซ้าย | ข้อความ | รูปชิป (ตัดกรอบแล้ว) ชิดขวา ขนาดเท่า QR */
+.label { align-items: center; gap: 3mm; }
+.label .qr { width: 22mm; height: 22mm; flex: none; }
+.label .ltext { flex: 1; min-width: 0; align-self: flex-start; }
+.label .lc.sm { font-size: 14px; word-break: break-all; }
+.label .chipimg { width: 22mm; height: 22mm; flex: none; object-fit: cover; border: 0.3mm solid #bbb; border-radius: 1mm; }
+.label .chipimg + .chipimg { margin-left: -1mm; }
+
+/* v4: รอระบุช่อง */
+.badge { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 99px; background: #f59f00; color: #1d2125;
+         font-size: 11px; font-weight: 700; text-align: center; line-height: 18px; }
+.loc.wait { background: var(--warn-bg); color: var(--warn); }
+.waitbanner { display: block; background: var(--warn-bg); color: var(--warn); border-color: #f5c27a; }
+.assignrow { display: flex; gap: 8px; margin-top: 8px; }
+.assignrow select { flex: 1; font-size: 17px; padding: 10px; }
+.waitrow { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.waitrow:last-child { border-bottom: 0; }
+span.thumb { display: inline-block; background: #f1f3f5; }
+
+/* v5: ตู้ชุดละ 3x6 + แก้ไขทีละช่อง */
+.cabinet { display: grid; margin-top: 10px; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+.cabcard.editing .cabinet { grid-template-columns: repeat(var(--cols1), minmax(0, 1fr)); }
+.cabcard:not(.editing) .when-edit { display: none !important; }
+.cabcard.editing .when-view { display: none; }
+.cabcard:not(.editing) .edit-toggle .when-edit { display: none; }
+.cell { position: relative; min-width: 0; }
+.cell .drawer { height: 100%; }
+.cell .rm { position: absolute; top: -6px; right: -6px; margin: 0; }
+.cell .rm button { width: 24px; height: 24px; padding: 0; border-radius: 50%; background: var(--danger); color: #fff;
+                   font-size: 16px; line-height: 22px; }
+.addcell { margin: 0; display: flex; }
+.addcell button { width: 100%; aspect-ratio: 1 / 1.05; background: #fff; color: var(--brand); border: 2px dashed var(--brand);
+                  border-radius: 8px; font-size: 26px; padding: 0; }
+.editpanel { margin-top: 12px; }
+.editpanel .card { background: #fafbfc; }
+.cabinet { max-width: calc(var(--cols) * 170px); }
+.cabcard.editing .cabinet { max-width: calc(var(--cols1) * 170px); }
+
+/* v7: รูปชิ้นงานเต็มช่องในแผนผังตู้ */
+.drawer .pics { flex: 1; min-height: 0; display: grid; gap: 3px; margin: 2px 0; }
+.drawer .pics.n2 { grid-template-columns: 1fr 1fr; }
+.drawer .pics.n3, .drawer .pics.n4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.drawer .pics img { width: 100%; height: 100%; min-height: 0; object-fit: cover; border-radius: 6px; display: block; }
+.drawer .pics.n1 img { object-fit: contain; background: #fff; }
+.drawer .pname { font-size: 11px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden;
+                 text-overflow: ellipsis; color: var(--text); }
+.drawer .mpns, .drawer .cnt, .drawer .imgs { display: none; }
+@media (max-width: 700px) {
+  .drawer .pname { font-size: 9px; }
+  .drawer .pics { gap: 2px; }
+  .drawer .pics img { border-radius: 4px; }
+}
+
+/* v8: หลายไอซีต่อช่อง -> 1 ไอซี 1 ช่องภาพ */
+.drawer .pics.g1 { grid-template-columns: 1fr; }
+.drawer .pics.g2 { grid-template-columns: 1fr 1fr; }
+.drawer .pics.g4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.drawer .pics.g9 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+.drawer .pics.g1 img { object-fit: contain; background: #fff; }
+.drawer .pics > * { min-width: 0; min-height: 0; }
+.drawer .pics .noimg, .drawer .pics .more { display: grid; place-items: center; border-radius: 6px; background: #eef1f4;
+  color: #495057; font-size: 9px; font-weight: 600; text-align: center; word-break: break-all; overflow: hidden;
+  padding: 2px; line-height: 1.1; }
+.drawer .pics .more { background: var(--brand-2); color: var(--brand); font-size: 13px; }
+@media (max-width: 700px) { .drawer .pics .noimg { font-size: 7px; } .drawer .pics .more { font-size: 11px; } }
+
+/* v9: ช่องภาพขนาดคงที่ (รูปไม่ยุบ) */
+.drawer .pics { flex: 1 1 0; min-height: 0; overflow: hidden; grid-auto-rows: 1fr; }
+.drawer .pics .tile { position: relative; min-width: 0; min-height: 0; border-radius: 6px; overflow: hidden; background: #eef1f4; }
+.drawer .pics .tile > img, .drawer .pics .tile > .noimg, .drawer .pics .tile > .more {
+  position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; }
+.drawer .pics .tile > img { object-fit: cover; }
+.drawer .pics.g1 .tile { background: #fff; }
+.drawer .pics.g1 .tile > img { object-fit: contain; }
+
+/* v10: ลากเรียงรูป */
+.gimg[data-file] { position: relative; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform .12s; }
+.gimg[data-file] img, .gimg[data-file] a { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
+.gimg .order { position: absolute; top: 2px; left: 2px; z-index: 2; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px;
+               background: rgba(16, 42, 42, .8); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.gimg.primary .order { background: var(--brand); }
+.gimg .is-primary { display: none; }
+.gimg.primary .is-primary { display: inline-block; }
+.gimg.primary .not-primary { display: none; }
+.gimg.dragging { opacity: .55; transform: scale(1.06); box-shadow: 0 6px 18px rgba(0,0,0,.25); z-index: 3; cursor: grabbing; }
+.gallery.sorting .gimg[data-file]:not(.dragging) { outline: 2px dashed #b7d8d6; outline-offset: 2px; }
+
+/* v11: ปุ่มกล้องระหว่างประมวลผล */
+.btn.busy, label.busy { pointer-events: none; opacity: .5; }
+
+/* v12: ตรวจซ้ำตอนสแกนรับของ */
+.dup { border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; line-height: 1.55; }
+.dup .duph { font-weight: 700; font-size: 16px; margin-bottom: 2px; }
+.dup.bag { background: #fde8e7; border: 2px solid var(--danger); color: #7a1a12; }
+.dup.same { background: #fff6dc; border: 2px solid #e0a100; color: #5a3d00; }
+.dup.same .dupgo { font-size: 16px; margin-top: 2px; }
+.dup.same .loc { font-size: 17px; }
+.dup.near { background: var(--warn-bg); border: 1px dashed var(--warn); color: var(--warn); }
+.dupok { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-weight: 600; color: var(--text); }
+.dupok input { width: 22px; height: 22px; }
+.simlist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.simlist .sim { display: flex; gap: 8px; align-items: center; text-align: left; padding: 6px 10px; }
+.simlist .sim img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+
+/* v13: หาไอซีจากรูป (ไม่มีถุงฉลาก) */
+.nolabel { display: block; text-align: center; margin-top: 8px; color: var(--brand); }
+dialog.sheet { width: min(560px, calc(100vw - 16px)); max-height: calc(100vh - 24px); border: none; border-radius: 14px;
+  padding: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+dialog.sheet::backdrop { background: rgba(0,0,0,.45); }
+.sheethead { display: flex; justify-content: space-between; align-items: center; font-size: 17px; margin-bottom: 8px; }
+.idq { display: flex; gap: 10px; align-items: center; background: var(--bg); border-radius: 10px; padding: 8px; }
+.idq img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; background: #fff; }
+.mono { font-family: var(--font-mono); font-weight: 700; word-break: break-all; }
+#idCands { display: flex; flex-direction: column; gap: 6px; }
+.idc { display: flex; gap: 10px; align-items: center; text-align: left; width: 100%; padding: 8px; border-radius: 10px;
+  border: 2px solid var(--line); background: #fff; color: var(--text); }
+.idc img, .idc .noimg { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 8px; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+.idc.on { border-color: var(--brand); background: var(--brand-2); box-shadow: 0 0 0 2px var(--brand) inset; }
+.idc.weak { border-style: dashed; }
+.idc .idt { min-width: 0; line-height: 1.45; }
+.idc .pct { color: var(--brand); font-weight: 700; }
+.weakchip { background: var(--warn) !important; }
+.idtotal { margin-top: 8px; padding: 8px 10px; background: #fff6dc; border-radius: 8px; color: #5a3d00; }
+.idtotal:empty { display: none; }
+
+/* v14: จำนวนจริงบนแผนผัง + เบิกใช้ (ตัดสต๊อก) */
+.drawer .dhead { display: flex; justify-content: space-between; align-items: center; gap: 4px; min-width: 0; }
+.drawer .dq { font-size: 15px; font-weight: 800; color: var(--text); background: #fff; border: 1px solid var(--line);
+  border-radius: 8px; padding: 0 6px; line-height: 1.35; font-variant-numeric: tabular-nums; flex: none; }
+.drawer .pics .tile .tq { position: absolute; right: 1px; bottom: 1px; z-index: 1; min-width: 16px; padding: 0 3px;
+  border-radius: 6px; background: rgba(16, 42, 42, .82); color: #fff; font-size: 11px; font-weight: 700; text-align: center; line-height: 1.4; }
+@media (max-width: 700px) {
+  .drawer .dq { font-size: 12px; padding: 0 4px; border-radius: 6px; }
+  .drawer .pics .tile .tq { font-size: 9px; min-width: 12px; }
+}
+.outsheet .qtyrow { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
+.outsheet .qtyrow input { text-align: center; font-size: 26px; font-weight: 700; flex: 1; min-width: 0; }
+.outsheet .step { width: 56px; font-size: 26px; padding: 0; }
+.outsheet .quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.outsheet #oParts { display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow: auto; }
+.outsheet .outleft { margin-top: 8px; padding: 8px 10px; background: var(--brand-2); border-radius: 8px; font-size: 16px; }
+.outsheet .olinks { margin-top: 10px; font-size: 13px; text-align: center; }
+.warnchip { background: var(--warn); color: #fff; border-radius: 6px; padding: 0 6px; font-size: 13px; }
+.bad { color: var(--danger); font-weight: 700; }
+.idc:disabled { opacity: .5; }
+.ulist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translate(-50%, 150%); width: min(560px, calc(100vw - 24px));
+  display: flex; gap: 10px; align-items: center; justify-content: space-between; background: #102a2a; color: #fff;
+  padding: 12px 14px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.35); transition: transform .2s; z-index: 50; }
+.toast.show { transform: translate(-50%, 0); }
+.toast.bad { background: #7a1a12; }
+.toast button { background: #fff; color: #102a2a; flex: none; }
+.drawer .pics .tile.out0 { opacity: .3; filter: grayscale(1); }
+.outsheet .outleft:empty, .outsheet .olinks:empty, .outsheet #oNote:empty { display: none; }
+
+/* v17: โหมดแตะแผนผัง (เบิก / ดูข้อมูล) + ปุ่มข้อมูลในหน้าต่างเบิก */
+.seg { display: inline-flex; border: 1px solid var(--brand); border-radius: 10px; overflow: hidden; margin: 0 0 10px; }
+.seg button { background: #fff; color: var(--brand); border-radius: 0; padding: 8px 14px; font-weight: 600; }
+.seg button.on { background: var(--brand); color: #fff; }
+.outsheet .orow { display: flex; gap: 6px; align-items: stretch; }
+.outsheet .orow .idc { flex: 1; min-width: 0; }
+.outsheet .oinfo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 6px 10px; font-size: 18px; flex: none; }
+.outsheet .oinfo span { font-size: 11px; }
+.outsheet .olinks { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+@media (max-width: 700px) { .seg button { padding: 7px 10px; font-size: 13px; } }
+
+/* v18: ค้นหา + เบิก รวมแท็บเดียว */
+.scan2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.scan2 .btn { text-align: center; padding: 11px 8px; }
+.hint { margin: 8px 0 0; }
+.rcard { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.rcard.weak { border-style: dashed; }
+.rcard > img, .rcard > .noimg { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 8px; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+.rcard .rinfo { flex: 1; min-width: 0; line-height: 1.5; }
+.rcard .rinfo .chip { font-size: 11px; padding: 1px 6px; }
+.rcard .rdesc { font-size: 12px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.rcard .pct { color: var(--brand); font-weight: 700; }
+.rcard .ract { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.rcard .ract > * { padding: 8px 10px; font-size: 14px; text-align: center; white-space: nowrap; }
+@media (max-width: 700px) {
+  .rcard { flex-wrap: wrap; }
+  .rcard .ract { flex-direction: row; width: 100%; }
+  .rcard .ract > * { flex: 1; }
+}
+
+/* v19: เรียลไทม์ + datasheet ในหน้าไอซี */
+.livebar { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 60; width: min(520px, calc(100vw - 24px));
+  background: #1c7ed6; color: #fff; border-radius: 10px; padding: 10px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.3); font-weight: 600; }
+body.offline header::after { content: "⚠ ขาดการเชื่อมต่อ — กำลังต่อใหม่"; color: #ffd8a8; font-size: 12px; margin-left: 8px; white-space: nowrap; }
+.dscard details { margin-top: 8px; }
+.dscard summary { cursor: pointer; }
+.dscard .pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px; margin-top: 6px; }
+.dscard .pins span { background: var(--bg); border-radius: 6px; padding: 3px 8px; font-family: var(--font-mono); font-size: 13px; }
+.dscard .pins b { color: var(--brand); margin-right: 4px; }
+.dscard table.params td { padding: 3px 8px; }
+.lvl { display: inline-block; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 600; background: #eef1f4; }
+.lvl.drop-in { background: var(--ok-bg); color: var(--ok); }
+.lvl.conditional { background: var(--warn-bg); color: var(--warn); }
+
+/* v20 ข้อความบนตัวชิป (marking) */
+.chiptext { display: inline-block; margin: 0 0 10px; padding: 6px 12px; border-radius: 8px; background: #1f2933; color: #f5f7fa;
+  font-size: 17px; letter-spacing: .5px; }
+.chiptext .mono { word-break: normal; }
+.markbox { border-left: 4px solid var(--brand); }
+.markrow { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.markrow .mkin { flex: 1 1 220px; font-size: 17px; }
+.small { font-size: 13px; }
+.warnbox { background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 10px; margin: 6px 0 8px; font-weight: 600; }
+.rcard .mk { font-size: 13px; color: var(--muted, #667); }
+.rcard .mk .mono { font-weight: 600; }
+
+/* v21 ค้นแบบเทียบทุกแหล่ง + ตัวแทนจาก datasheet (ป๊อปอัพ) */
+.searchbar #uGo { flex: none; white-space: nowrap; }
+.mstat { border-radius: 8px; padding: 8px 10px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mstat.ok { background: var(--ok-bg); color: var(--ok); }
+.mstat.warn { background: var(--warn-bg); color: var(--warn); }
+.mstat.bad { background: #fde8e7; color: #7a1a12; }
+dialog.matchsheet { width: min(640px, calc(100vw - 16px)); overflow-y: auto; }
+.matchsheet h3 { font-size: 15px; margin: 14px 0 6px; }
+.matchsheet .mq { display: flex; gap: 10px; align-items: center; }
+.matchsheet .mq img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+.matchsheet .verdict { margin: 8px 0; border-radius: 10px; padding: 10px 12px; font-weight: 600; }
+.verdict.ok { background: var(--ok-bg); color: var(--ok); }
+.verdict.warn { background: var(--warn-bg); color: var(--warn); }
+.verdict.bad { background: #fde8e7; color: #7a1a12; }
+.matchsheet .ident { background: #e8f1fb; color: #1b4f8a; border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
+.mcard { border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; background: #fff; }
+.mcard.strong, .mcard.ok { border-left-color: var(--ok); }
+.mcard.likely, .mcard.warn { border-left-color: #f59f00; }
+.mcard.weak, .mcard.gray { border-left-color: #adb5bd; border-style: dashed; }
+.mcard.info { border-left-color: #1c7ed6; }
+.mcard.bad { border-left-color: var(--danger); background: #fffafa; }
+.mcard .mtop { display: flex; gap: 10px; align-items: center; }
+.mcard .mtop > img, .mcard .mtop > .noimg { width: 56px; height: 56px; flex: none; object-fit: cover; border-radius: 8px; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+.mcard .minfo { min-width: 0; line-height: 1.5; }
+.mcard .mk { font-size: 13px; color: var(--muted); }
+.mcard .pct { color: var(--brand); font-weight: 700; }
+.lv { display: inline-block; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 600; background: #eef1f4; color: #495057; }
+.lv.ok { background: var(--ok-bg); color: var(--ok); }
+.lv.warn { background: var(--warn-bg); color: var(--warn); }
+.lv.bad { background: #fde8e7; color: var(--danger); }
+.lv.info { background: #e8f1fb; color: #1b4f8a; }
+.evs { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+.ev { font-size: 12px; border-radius: 99px; padding: 1px 8px; background: #eef1f4; }
+.ev.label { background: #e6f4f3; color: var(--brand); }
+.ev.marking { background: #1f2933; color: #f5f7fa; }
+.ev.datasheet { background: #e8f1fb; color: #1b4f8a; }
+.ev.photo { background: #f3e8ff; color: #6b21a8; }
+.evl { margin: 4px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+.snote { margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.cmp { margin-top: 6px; font-size: 13px; }
+.cmp summary { cursor: pointer; color: var(--brand); font-weight: 600; }
+.cmp .cpins { margin: 6px 0; line-height: 1.6; }
+.cmp table td, .cmp table th { padding: 3px 6px; font-size: 12px; }
+.cmp tr.f-bad td { background: #fde8e7; }
+.cmp tr.f-warn td { background: var(--warn-bg); }
+.mact { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.mact > * { flex: 1 1 auto; text-align: center; }
+.mfoot { margin-top: 10px; }
+
+/* v22 ปุ่มย้อนกลับ */
+.backbtn { display: inline-flex; align-items: center; padding: 2px 9px; margin-bottom: 6px; font-size: 12px; line-height: 1.4; border-radius: 6px; }
+@media print { .noprint { display: none !important; } }
+
+/* ===================================================================================================
+   v25 ธีม ALL EV SERVICE — ให้เข้ากับเว็บบริษัท allev-service.com
+   ฟอนต์ LINE Seed Sans TH · ฟ้า EV #00AEEF · ปุ่มหลักไล่สีส้ม #FC6337→#F99F23 แบบแคปซูล · พื้นเทาฟ้า #E4EBF0
+   การ์ดขาวมุมโค้งใหญ่ เงาบาง · หัวเว็บขาว + โลโก้ EV
+   =================================================================================================== */
+:root {
+  --font-ui: "LINE Seed Sans TH", "Sarabun", "IC Symbols", "Segoe UI", "Leelawadee UI", Tahoma, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji";
+  --ev: #00aeef;            /* ฟ้าโลโก้ EV */
+  --ev-ink: #0077b6;        /* ฟ้าเข้ม สำหรับตัวหนังสือ/ลิงก์ (อ่านชัดบนพื้นขาว) */
+  --ev-soft: #e3f6fd;
+  --orange-1: #fc6337; --orange-2: #f99f23;
+  --grad: linear-gradient(90deg, var(--orange-1), var(--orange-2));
+  --bg: #eef3f6; --section: #e4ebf0; --card: #fff; --text: #282828; --muted: #5f6b76; --line: #dbe3ea;
+  --brand: var(--ev-ink); --brand-2: var(--ev-soft);
+  --radius: 16px; --shadow: 0 2px 10px rgba(16, 52, 80, .07);
+}
+body { background: var(--bg); color: var(--text); letter-spacing: .1px; }
+a { color: var(--ev-ink); }
+h1, h2, h3 { font-weight: 700; color: var(--text); }
+h1 { font-size: 24px; }
+h1::after { content: ""; display: block; width: 44px; height: 4px; border-radius: 4px; background: var(--grad); margin-top: 6px; }
+
+/* หัวเว็บ: พื้นขาว + โลโก้ EV เหมือนเว็บบริษัท */
+header { background: #fff; color: var(--text); padding: 8px 20px; gap: 4px; box-shadow: 0 2px 12px rgba(16, 52, 80, .08);
+         border-bottom: 3px solid transparent; border-image: var(--grad) 1; }
+header .logo { display: inline-flex; align-items: center; gap: 8px; margin-right: 18px; font-weight: 800; color: var(--text);
+               letter-spacing: .3px; padding: 0; background: none !important; }
+header .logo img { height: 38px; width: auto; display: block; }
+header .logo small { display: block; font-size: 10px; font-weight: 700; color: var(--ev); letter-spacing: 1.5px; line-height: 1; }
+header .logo .lt { line-height: 1.15; }
+header a { color: var(--text); padding: 7px 12px; border-radius: 999px; font-weight: 600; }
+header a:hover { background: var(--ev-soft); color: var(--ev-ink); }
+header a.on { background: var(--ev); color: #fff; }
+header .badge { background: var(--grad); color: #fff; }
+
+/* การ์ด / ช่องข้อมูล */
+.card, .stat { border: 0; border-radius: var(--radius); box-shadow: var(--shadow); }
+.card { padding: 16px 18px; }
+.editpanel .card { background: #f7fafc; }
+input[type=text], input[type=number], input[type=search], select, textarea { border-radius: 12px; border-color: var(--line); }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--ev); outline-offset: 0; border-color: transparent; }
+
+/* ปุ่ม: หลัก = แคปซูลไล่สีส้ม ; รอง = ขาวขอบฟ้า */
+button, .btn { background: var(--grad); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700;
+               box-shadow: 0 3px 10px rgba(252, 99, 55, .22); transition: filter .15s, transform .05s; }
+button:hover, .btn:hover { filter: brightness(1.05); }
+button:active, .btn:active { transform: translateY(1px); }
+button.secondary, .btn.secondary { background: #fff; color: var(--ev-ink); border: 1.5px solid var(--ev); box-shadow: none; }
+button.secondary:hover, .btn.secondary:hover { background: var(--ev-soft); filter: none; }
+button.mini, .btn.mini { border-radius: 999px; padding: 4px 11px; box-shadow: none; }
+button.danger, .btn.danger { background: #fff; border: 1.5px solid var(--danger); box-shadow: none; }
+.backbtn { border-radius: 999px; padding: 2px 11px; }
+.seg { border-color: var(--ev); border-radius: 999px; }
+.seg button { color: var(--ev-ink); box-shadow: none; border-radius: 0; background: #fff; }
+.seg button.on { background: var(--ev); color: #fff; }
+.cands button, .idc, .rcard .ract > *, .addcell button { box-shadow: none; }
+.idc { background: #fff; color: var(--text); border-radius: 14px; }
+.idc.on { border-color: var(--ev); background: var(--ev-soft); box-shadow: 0 0 0 2px var(--ev) inset; }
+.cell .rm button { background: var(--danger); box-shadow: none; border-radius: 50%; padding: 0; }
+.addcell button { background: #fff; color: var(--ev-ink); border-color: var(--ev); border-radius: 12px; }
+
+/* ป้ายช่อง / ชิป / ขั้นตอน */
+.loc { background: var(--ev-soft); color: var(--ev-ink); border-radius: 8px; }
+.step b { background: var(--grad); }
+.found, .markbox { border-left-color: var(--ev); }
+.locked { background: var(--ev-soft); border-color: var(--ev); border-radius: 12px; }
+.msg { border-radius: 12px; }
+.warn, .warnbox { border-radius: 12px; }
+
+/* แผนผังตู้ */
+.drawer { border-color: var(--line); border-radius: 12px; }
+.drawer:hover { border-color: var(--ev); box-shadow: 0 0 0 2px var(--ev-soft); }
+.drawer .bar i { background: var(--ev); }
+.drawer .pics .more { background: var(--ev-soft); color: var(--ev-ink); }
+.drawer .pics .tile .tq, .gimg .order { background: rgba(40, 40, 40, .82); }
+.gimg { border-radius: 14px; }
+.gimg.primary { border-color: var(--ev); }
+.gimg.primary .order { background: var(--ev); }
+.gallery.sorting .gimg[data-file]:not(.dragging) { outline-color: #9adcf6; }
+
+/* ข้อความบนตัวชิป: ป้ายดำแบบตัวชิปจริง */
+.chiptext { background: #282828; border-radius: 10px; }
+
+/* หน้าต่างป๊อปอัพ / ผลค้นหา */
+dialog.sheet { border-radius: 20px; }
+.rcard, .mcard { border-radius: 14px; }
+.rcard .pct, .mcard .pct, .idc .pct { color: var(--orange-1); }
+.matchsheet .ident { background: var(--ev-soft); color: #0b4f75; }
+.lv.info, .ev.datasheet { background: var(--ev-soft); color: #0b4f75; }
+.ev.label { background: #fff1e8; color: #b54708; }
+.mcard.info { border-left-color: var(--ev); }
+.cmp summary { color: var(--ev-ink); }
+.dscard .pins b { color: var(--ev-ink); }
+.toast { background: #282828; border-radius: 16px; }
+.toast button { background: #fff; color: #282828; box-shadow: none; }
+.livebar { background: var(--ev); border-radius: 14px; }
+.outsheet .outleft { background: var(--ev-soft); border-radius: 12px; }
+
+@media (max-width: 700px) {
+  header { padding: 6px 10px; }
+  header .logo { margin-right: 6px; }
+  header .logo img { height: 30px; }
+  header .logo .lt { display: none; }
+  header a { padding: 6px 10px; }
+  h1 { font-size: 19px; }
+  .card { padding: 12px; border-radius: 14px; }
+}
+.stat b { color: var(--ev); font-weight: 800; }

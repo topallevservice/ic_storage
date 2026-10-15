@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}แก้ไข {{ p.mpn }} — IC Storage{% endblock %}
+{% block bodyattrs %}data-live="manual"{% endblock %}
+{% block back %}/intake{% endblock %}
+{% block content %}
+<h1>แก้ไขรายการรับเข้า #{{ lot.id }}</h1>
+
+<div class="card">
+  <h2>รูปตัวไอซี</h2>
+  {% set back = '/lot/' ~ lot.id ~ '/edit' %}
+  {% include "_gallery.html" %}
+</div>
+
+<form class="card" method="post" action="/lot/{{ lot.id }}/edit">
+  <h2>ข้อมูลเบอร์</h2>
+  <div class="grid2">
+    <div><label>MPN (เบอร์ผู้ผลิต)</label><input type="text" name="mpn" value="{{ p.mpn }}" required id="lotMpn"></div>
+    <div><label>หมวด</label><select name="category">
+      {% for c in cats %}<option value="{{ c.code }}" {{ 'selected' if c.code == p.category }}>{{ c.code }} — {{ c.name_th }}</option>{% endfor %}</select></div>
+    <div><label>ผู้ผลิต</label><input type="text" name="manufacturer" value="{{ p.manufacturer }}"></div>
+    <div><label>แพ็กเกจ</label><input type="text" name="package" value="{{ p.package }}"></div>
+  </div>
+  <label style="margin-top:8px">คำอธิบาย</label><input type="text" name="description" value="{{ p.description }}">
+  <div class="markbox" style="margin-top:10px">
+    <label>🔤 ข้อความบนตัวชิป</label>
+    {% include "_marking_input.html" %}
+  </div>
+
+  <h2>ข้อมูลถุงนี้</h2>
+  <div class="grid2">
+    <div><label>จำนวน</label><input type="number" name="qty" min="0" value="{{ lot.qty }}" class="bigin"></div>
+    <div><label>ตำแหน่ง</label>
+      <select name="location" class="bigin">
+        {% for d in drawers %}<option value="{{ d.code }}" {{ 'selected' if d.code == lot.loc_code }}>{{ d.code|locname }}</option>{% endfor %}
+      </select>
+</div>
+    <div><label>ขนาดถุง</label><select name="size_units">
+      {% for v, t in [(1,'ถุงเล็ก (1)'),(2,'ถุงใหญ่ (2)'),(3,'รีล/กล่อง (3)')] %}<option value="{{ v }}" {{ 'selected' if v == lot.size_units }}>{{ t }}</option>{% endfor %}</select></div>
+    <div><label>ที่มา</label><select name="source">
+      <option value="new" {{ 'selected' if lot.source == 'new' }}>ของใหม่</option>
+      <option value="salvage" {{ 'selected' if lot.source == 'salvage' }}>ถอดจากบอร์ดซาก</option></select></div>
+    <div><label>ผู้ขาย</label><input type="text" name="supplier" value="{{ lot.supplier }}"></div>
+    <div><label>เบอร์ผู้ขาย</label><input type="text" name="supplier_pn" value="{{ lot.supplier_pn }}"></div>
+    <div><label>Lot</label><input type="text" name="lot" value="{{ lot.lot }}"></div>
+    <div><label>Date code</label><input type="text" name="date_code" value="{{ lot.date_code }}"></div>
+  </div>
+  {% if lot.photo %}<p><a href="/photos/{{ lot.photo }}" target="_blank">🏷 รูปฉลาก</a></p>{% endif %}
+  <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+    <button class="big">💾 บันทึกการแก้ไข</button>
+  </div>
+</form>
+
+<form class="card" method="post" action="/lot/{{ lot.id }}/delete"
+      data-confirm="ต้องการลบรายการรับเข้า {{ p.mpn }} ({{ lot.qty }} ชิ้น) จริง ๆ ใช่ไหม?&#10;ลบแล้วกู้คืนไม่ได้">
+  {% if has_out %}<p class="muted">มีประวัติเบิกแล้ว — ลบไม่ได้</p>
+  {% else %}<button class="secondary danger">🗑 ลบรายการนี้</button>{% endif %}
+</form>
+<script>
+// เปลี่ยน MPN เป็นเบอร์ที่มีอยู่แล้ว = ถุงนี้ย้ายไปรวมกับเบอร์นั้น -> ถามก่อน
+document.getElementById("lotMpn").form.addEventListener("submit", (e) => {
+  const f = document.getElementById("lotMpn");
+  if (!e.defaultPrevented && f.value.trim() !== f.defaultValue.trim() &&
+      !confirm("เปลี่ยน MPN เป็น " + f.value.trim() + " ?\nถ้ามีเบอร์นี้ในระบบแล้ว ถุงนี้จะย้ายไปรวมกับเบอร์นั้น")) e.preventDefault();
+});
+</script>
+{% endblock %}

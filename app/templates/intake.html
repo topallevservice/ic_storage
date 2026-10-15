@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}สแกนรับของ — IC Storage{% endblock %}
+{% block bodyattrs %}data-live="manual"{% endblock %}
+{% block back %}/{% endblock %}
+{% block content %}
+<h1>สแกนรับของเข้า</h1>
+
+<div class="card scanbox">
+  <div class="step"><b>1</b> ฉลากถุง</div>
+  <label class="btn big camera" for="photo">📷 ถ่ายรูปฉลากถุง</label>
+  <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+  <label class="btn secondary nolabel" for="chipPhoto">🔍 ไม่มีฉลาก — ถ่ายรูปตัวไอซี</label>
+  <input type="file" id="chipPhoto" accept="image/*" capture="environment" hidden>
+  <div id="status" class="muted" style="margin-top:6px"></div>
+  <div id="preview"></div>
+  <div id="choices"></div>
+  <details style="margin-top:10px">
+    <summary class="muted">เครื่องสแกน / พิมพ์เบอร์</summary>
+    <div class="searchbar" style="margin-top:6px">
+      <input type="text" id="scan" placeholder="ยิงสแกน / พิมพ์เบอร์ แล้ว Enter" autocomplete="off">
+      <button type="button" id="btnParse">อ่าน</button>
+    </div>
+  </details>
+</div>
+
+<form class="card found" method="post" action="/intake" id="form" hidden>
+  <!-- ตรวจซ้ำตั้งแต่สแกนฉลาก: ถุงซ้ำ / เบอร์ซ้ำ (ใส่ช่องเดิม เพิ่มจำนวน) / เบอร์ใกล้เคียง -->
+  <div id="dupBox"></div>
+
+  <!-- ข้อมูลจากฉลาก: แสดงอย่างเดียว แก้ได้ถ้าจำเป็น -->
+  <div class="partsum">
+    <div class="icimg" id="icBox"><span class="muted">ยังไม่มีรูปไอซี</span></div>
+    <div style="flex:1; min-width:0">
+      <div class="mpn" id="sumMpn">—</div>
+      <div id="sumCat"></div>
+      <div class="muted" id="sumDesc"></div>
+      <div class="muted" id="sumSup"></div>
+      <div id="sumNew" class="muted"></div>
+    </div>
+  </div>
+  <details id="editBox">
+    <summary class="muted" id="editSum">✏️ แก้ไขข้อมูล</summary>
+    <div class="grid2" style="margin-top:8px">
+      <div><label>MPN</label><input type="text" name="mpn" id="f_mpn" required></div>
+      <div><label>หมวด</label>
+        <select name="category" id="f_category">
+          {% for c in cats %}<option value="{{ c.code }}">{{ c.code }} — {{ c.name_th }}</option>{% endfor %}
+        </select></div>
+      <div><label>ผู้ผลิต</label><input type="text" name="manufacturer" id="f_manufacturer"></div>
+      <div><label>แพ็กเกจ</label><input type="text" name="package" id="f_package"></div>
+      <div><label>คำอธิบาย</label><input type="text" name="description" id="f_description"></div>
+      <div><label>ผู้ขาย</label><input type="text" name="supplier" id="f_supplier" list="suppliers">
+        <datalist id="suppliers"><option>LCSC</option><option>Digikey</option><option>Mouser</option><option>ร้านไทย</option><option>ถอดจากบอร์ด</option></datalist></div>
+      <div><label>เบอร์ผู้ขาย</label><input type="text" name="supplier_pn" id="f_supplier_pn"></div>
+      <div><label>Lot</label><input type="text" name="lot" id="f_lot"></div>
+      <div><label>Date code</label><input type="text" name="date_code" id="f_date_code"></div>
+      <div><label>ขนาดถุง</label>
+        <select name="size_units" id="f_size"><option value="1">ถุงเล็ก (1)</option><option value="2">ถุงใหญ่ (2)</option><option value="3">รีล/กล่อง (3)</option></select></div>
+      <div><label>ที่มา</label>
+        <select name="source" id="f_source"><option value="new">ของใหม่</option><option value="nolabel">ของใหม่ ไม่มีถุงฉลาก</option><option value="salvage">ถอดจากบอร์ดซาก</option></select></div>
+    </div>
+  </details>
+
+  <div class="step" style="margin-top:14px"><b>2</b> รูปตัวไอซี</div>
+  <div class="gallery" id="icGallery"></div>
+  <p class="muted small" id="icHint" hidden>ลากเพื่อเรียง · รูปที่ 1 = รูปหลัก</p>
+  <label class="btn secondary" for="icPhoto" style="color:var(--brand)" id="icBtn">📷 ถ่ายรูปตัวไอซี</label>
+  <input type="file" id="icPhoto" accept="image/*" capture="environment" hidden>
+  <span id="icStatus" class="muted"></span>
+  <div class="markbox">
+    <label for="f_marking">🔤 ข้อความบนตัวชิป</label>
+    <input type="text" name="marking" id="f_marking" class="mono" autocomplete="off" placeholder="เช่น TI OPA / 2348A / 53ERZ">
+  </div>
+
+  <div class="step" style="margin-top:14px"><b>3</b> จำนวน / ตำแหน่ง</div>
+  <div class="grid2">
+    <div><label>จำนวน</label>
+      <input type="number" name="qty" id="f_qty" min="0" required class="bigin"></div>
+    <div>
+      <label>ตำแหน่ง</label>
+      <div id="lockedBox" class="locked" hidden></div>
+      <select name="location" id="f_location" class="bigin">
+        {% for d in drawers %}<option value="{{ d.code }}" {{ 'selected' if d.code == staging }}>{{ '⏳ รอระบุช่อง' if d.code == staging else d.code }}</option>{% endfor %}
+      </select>
+      <div id="sugg" class="muted"></div>
+    </div>
+  </div>
+
+  <input type="hidden" name="order_no" id="f_order_no">
+  <input type="hidden" name="coo" id="f_coo">
+  <input type="hidden" name="raw_code" id="f_raw">
+  <input type="hidden" name="photo" id="f_photo">
+  <input type="hidden" name="ic_images" id="f_ic_images">
+  <input type="hidden" name="ic_order" id="f_ic_order">
+  <div style="margin-top:14px"><button class="big" style="width:100%" id="btnSave">✔ บันทึกรับเข้า</button></div>
+</form>
+
+<!-- ป๊อปอัพ: ผลหาไอซีจากรูป ให้ผู้ใช้ยืนยัน + ใส่จำนวน -->
+<dialog id="idDlg" class="sheet">
+  <form method="post" action="/intake" id="idForm">
+    <div class="sheethead"><b>ผลจากรูปไอซี</b><button type="button" class="mini secondary" id="idClose">✕</button></div>
+    <div class="idq">
+      <img id="idImg" alt="">
+      <div><div class="muted">อ่านได้</div><div id="idLines" class="mono"></div></div>
+    </div>
+    <p class="muted" style="margin:6px 0">แตะเลือกเบอร์ที่ใช่</p>
+    <div id="idCands"></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label>จำนวน</label><input type="number" name="qty" id="idQty" min="1" required class="bigin" inputmode="numeric"></div>
+      <div><label>ที่มา</label><select name="source"><option value="nolabel">ของใหม่ ไม่มีถุงฉลาก</option><option value="salvage">ถอดจากบอร์ดซาก</option></select></div>
+    </div>
+    <label class="dupok" id="idKeepBox"><input type="checkbox" id="idKeep" checked> เก็บรูปนี้ไว้กับเบอร์นี้</label>
+    <div id="idTotal" class="idtotal"></div>
+    <input type="hidden" name="mpn" id="idMpn">
+    <input type="hidden" name="ic_images" id="idImages">
+    <input type="hidden" name="marking" id="idMarking">
+    <input type="hidden" name="location" value="{{ staging }}">
+    <button class="big" style="width:100%; margin-top:8px" id="idOk" disabled>เลือกเบอร์ก่อน</button>
+    <button type="button" class="secondary" style="width:100%; margin-top:8px" id="idNone">✖ ไม่ใช่ — กรอกเอง</button>
+  </form>
+</dialog>
+
+<div class="card">
+  <h2>รับเข้าล่าสุด</h2>
+  <div class="tablewrap"><table>
+    <tr><th></th><th>MPN</th><th>จำนวน</th><th>อยู่ที่</th><th></th></tr>
+    {% for r in recent %}
+    <tr><td>{% if r.image %}<img class="thumb" src="/images/t_{{ r.image }}" alt="">{% endif %}</td>
+      <td><a href="/part/{{ r.part_id }}"><b>{{ r.mpn }}</b></a><div class="muted">{{ r.category }} · {{ r.supplier }}</div></td>
+      <td>{{ r.qty }}</td><td><span class="loc {{ 'wait' if r.loc_code == staging }}">{{ r.loc_code|locname }}</span></td>
+      <td><a class="btn mini secondary" href="/lot/{{ r.id }}/edit">✏️</a></td></tr>
+    {% endfor %}
+  </table></div>
+</div>
+
+<script>const CATS = {{ cats_json|safe }};</script>
+<script src="/static/sortable.js?v=1"></script>
+<script src="/static/intake.js?v=13"></script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{# แกลเลอรีรูปไอซีของเบอร์: ต้องมี p, imgs, max_images, back — ลากเรียงได้ รูปแรก = รูปหลัก #}
+<div class="gallery" id="gallery-{{ p.id }}">
+  {% for im in imgs %}
+  <div class="gimg {{ 'primary' if loop.first }}" data-file="{{ im.file }}">
+    <span class="order">{{ loop.index }}</span>
+    <a href="/images/{{ im.file }}" target="_blank" draggable="false"><img src="/images/t_{{ im.file }}?v={{ range(1, 99999)|random }}" alt="" draggable="false"></a>
+    <div class="gbtns">
+      <span class="chip is-primary" style="background:var(--brand)">รูปหลัก</span>
+      <form method="post" action="/part/{{ p.id }}/image/{{ im.id }}/primary" class="not-primary"><input type="hidden" name="back" value="{{ back }}"><button class="mini secondary">ตั้งรูปหลัก</button></form>
+      <a class="btn mini secondary" href="/crop/{{ im.file }}?back={{ back|urlencode }}">✂ ตัดกรอบ</a>
+      <form method="post" action="/part/{{ p.id }}/image/{{ im.id }}/delete" data-confirm="ต้องการลบรูปนี้จริง ๆ ใช่ไหม?">
+        <input type="hidden" name="back" value="{{ back }}"><button class="mini secondary danger">ลบ</button></form>
+    </div>
+  </div>
+  {% endfor %}
+  {% if imgs|length < max_images %}
+  <form method="post" action="/part/{{ p.id }}/image" enctype="multipart/form-data" class="gimg add">
+    <input type="hidden" name="back" value="{{ back }}">
+    <label>📷<br>เพิ่มรูป<br><span class="muted">({{ imgs|length }}/{{ max_images }})</span>
+      <input type="file" name="photo" accept="image/*" capture="environment" hidden onchange="this.form.submit()"></label>
+  </form>
+  {% endif %}
+</div>
+<p class="muted small">{% if imgs|length > 1 %}ลากเพื่อเรียง · รูปที่ 1 = รูปหลัก {% endif %}<span id="gsave-{{ p.id }}"></span></p>
+<script src="/static/sortable.js?v=1"></script>
+<script>
+  (function () {
+    const box = document.getElementById("gallery-{{ p.id }}");
+    const status = document.getElementById("gsave-{{ p.id }}");
+    makeSortable(box, ".gimg[data-file]", async (items) => {
+      items.forEach((el, i) => {
+        el.classList.toggle("primary", i === 0);
+        el.querySelector(".order").textContent = i + 1;
+      });
+      const fd = new FormData();
+      fd.append("files", items.map((el) => el.dataset.file).join(","));
+      status.textContent = "⏳ กำลังบันทึกลำดับ...";
+      try {
+        const r = await fetch("/part/{{ p.id }}/images/order", { method: "POST", body: fd });
+        status.textContent = r.ok ? "✅ บันทึกลำดับแล้ว" : "❌ บันทึกไม่สำเร็จ";
+      } catch (e) {
+        status.textContent = "❌ บันทึกไม่สำเร็จ: " + e;
+      }
+    });
+  })();
+</script>

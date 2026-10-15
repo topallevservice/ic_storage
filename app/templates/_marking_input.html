@@ -1,0 +1,40 @@
+<div class="markrow">
+  <input type="text" name="marking" class="mono mkin" value="{{ p.marking or '' }}" autocomplete="off"
+         placeholder="เช่น TI OPA / 2348A / 53ERZ" data-name="ข้อความบนตัวชิป">
+  {% set lv = p|label_value %}{% if lv and lv != p.marking %}<button type="button" class="secondary mklabel" data-v="{{ lv }}">📋 ค่าจากฉลาก</button>{% endif %}
+  {% if imgs %}<button type="button" class="secondary mkread" data-files="{{ imgs|map(attribute='file')|join(',') }}">🔍 อ่านจากรูป</button>{% endif %}
+</div>
+<div class="muted small mkmsg"></div>
+<script>
+(() => {
+  const s = document.currentScript, box = s.previousElementSibling.previousElementSibling;
+  const btn = box.querySelector(".mkread"), inp = box.querySelector(".mkin"), msg = s.previousElementSibling;
+  const lb = box.querySelector(".mklabel");
+  if (lb) lb.onclick = () => {
+    if (inp.value.trim() && !confirm("แทนที่ข้อความเดิมด้วยค่าจากฉลาก?
+
+" + lb.dataset.v)) return;
+    inp.value = lb.dataset.v;
+    inp.dispatchEvent(new Event("input", { bubbles: true }));
+    msg.textContent = "✅ กดบันทึก";
+  };
+  if (!btn) return;
+  btn.onclick = async () => {
+    btn.disabled = true; btn.classList.add("busy"); msg.textContent = "⏳ กำลังอ่าน...";
+    try {
+      const fd = new FormData(); fd.append("files", btn.dataset.files);
+      const r = await (await fetch("/api/read-marking", { method: "POST", body: fd })).json();
+      if (!r.chip_text) { msg.textContent = "❌ อ่านไม่ได้ — พิมพ์เอง"; return; }
+      if (inp.value.trim() && inp.value.trim() !== r.chip_text && !confirm("แทนที่ข้อความเดิมด้วยที่อ่านได้?\n\n" + r.chip_text)) {
+        msg.textContent = "อ่านได้: " + r.chip_text + " (ไม่ได้แทนที่)";
+        return;
+      }
+      inp.value = r.chip_text;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+      msg.textContent = "✅ ตรวจกับตัวจริง แล้วกดบันทึก";
+    } catch (e) {
+      msg.textContent = "❌ ส่งไม่สำเร็จ — เช็ก Wi-Fi";
+    } finally { btn.disabled = false; btn.classList.remove("busy"); }
+  };
+})();
+</script>

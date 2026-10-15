@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}แผนผังตู้ — IC Storage{% endblock %}
+{% block back %}/{% endblock %}
+{% block content %}
+<h1>แผนผังตู้ลิ้นชัก</h1>
+<div class="seg" id="tapMode" role="group" aria-label="แตะช่องที่มีของเพื่อ">
+  <button type="button" data-m="out">🛒 เบิก</button>
+  <button type="button" data-m="info">ℹ️ ดูข้อมูล</button>
+</div>
+{% if nav_unassigned %}<a class="card waitbanner" href="/putaway">⏳ รอระบุช่อง <b>{{ nav_unassigned }}</b> เบอร์</a>{% endif %}
+
+{% for cab_name, cab in cabinets.items() %}
+{% set info = cab.info %}
+{% set ndrawers = cab.rows.values()|map('length')|sum %}
+<div class="card cabcard {{ 'editing' if edit == cab_name }}" id="cab-{{ cab_name }}">
+  <div class="cabhead">
+    <h2 style="margin:0">ตู้ {{ cab_name }} <span class="muted">{{ ndrawers }} ลิ้นชัก</span></h2>
+    <button type="button" class="secondary edit-toggle" onclick="this.closest('.cabcard').classList.toggle('editing')">
+      <span class="when-view">⚙ แก้ไขช่อง</span><span class="when-edit">✔ เสร็จ</span></button>
+  </div>
+  <p class="muted when-edit" style="margin:8px 0 0">＋ เพิ่มช่อง · × ลบช่องว่าง</p>
+
+  {% set maxc = cab.max_col if cab.max_col else 1 %}
+  <div class="cabinet" style="--cols: {{ maxc }}; --cols1: {{ maxc + 1 }}">
+    {% for r in range(1, (info.rows if info else 0) + 1) %}
+      {% set drawers = cab.rows.get(r, []) %}
+      {% for d in drawers %}
+        {% set cat = cats.get(d.main_cat) if d.main_cat else None %}
+        <div class="cell" style="grid-row: {{ r }}; grid-column: {{ d.col }}">
+          {% set items = d['items'] %}
+          {% set n = items|length %}
+          <a class="drawer" href="/loc/{{ d.code }}"
+             {% if n %}data-loc="{{ d.code }}" data-items='{{ items|tojson }}'{% endif %}
+             style="{% if cat %}border-color: {{ cat.color }}; background: {{ cat.color }}14{% endif %}">
+            <span class="dhead"><span class="code">R{{ d.row }}-C{{ d.col }}</span>
+              {% if n %}<b class="dq" title="จำนวนไอซีในช่องนี้">{{ d.qty }}</b>{% endif %}</span>
+            {% if cat %}<span class="chip" style="background:{{ cat.color }}; align-self:flex-start">{{ cat.code }}</span>{% endif %}
+            {% if n %}
+            {# 1 ไอซี = 1 ช่องภาพ: 1 / 2 / 2x2 / 3x3 ; เกิน 9 ช่องสุดท้ายเป็น +N #}
+            {% set g = 1 if n == 1 else (2 if n == 2 else (4 if n <= 4 else 9)) %}
+            {% set shown = items if n <= 9 else items[:8] %}
+            <span class="pics g{{ g }}">
+              {% for it in shown %}
+                <span class="tile" title="{{ it.mpn }}" data-pid="{{ it.id }}">{% if it.image %}<img src="/images/c_{{ it.image }}" alt="{{ it.mpn }}" loading="lazy">
+                {% else %}<span class="noimg">{{ it.mpn }}</span>{% endif %}{% if n > 1 %}<span class="tq">{{ it.qty }}</span>{% endif %}</span>
+              {% endfor %}
+              {% if n > 9 %}<span class="tile"><span class="more">+{{ n - 8 }}</span></span>{% endif %}
+            </span>
+            <span class="pname">{% if n == 1 %}{{ items[0].mpn }}{% else %}{{ n }} ไอซี{% endif %}</span>
+            {% endif %}
+          </a>
+          {% if not d['items'] %}
+          <form method="post" action="/loc/{{ d.code }}/remove" class="rm when-edit"
+                data-confirm="ต้องการลบช่อง {{ d.code }} จริง ๆ ใช่ไหม?"><button title="ลบช่องนี้">×</button></form>
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% set nextc = (drawers|map(attribute='col')|max if drawers else 0) + 1 %}
+      <form method="post" action="/cabinet/{{ cab_name }}/add-drawer" class="addcell when-edit"
+            style="grid-row: {{ r }}; grid-column: {{ nextc }}">
+        <input type="hidden" name="row" value="{{ r }}">
+        <button title="เพิ่มช่องท้ายแถว {{ r }}">＋</button>
+      </form>
+    {% endfor %}
+  </div>
+
+  {% if info %}
+  <div class="when-edit editpanel">
+    <form method="post" action="/cabinet/{{ cab_name }}/add-rows" class="card cabform">
+      <div style="grid-column: 1 / -1"><b>เพิ่มแถว</b></div>
+      <div><label>จำนวนแถว</label><input type="number" name="n_rows" min="1" max="20" value="1"></div>
+      <div><label>แถวละกี่ช่อง</label><input type="number" name="per_row" min="1" max="50" value="{{ default_cols }}"></div>
+      <div><button>เพิ่มแถว</button></div>
+    </form>
+    <form method="post" action="/cabinet/{{ cab_name }}/capacity" class="card cabform">
+      <div><label>ความจุ/ลิ้นชัก (ถุง)</label><input type="number" name="capacity" min="1" value="{{ info.capacity }}"></div>
+      <div><button class="secondary">ตั้งความจุ</button></div>
+    </form>
+    <form method="post" action="/cabinet/{{ cab_name }}/delete" style="text-align:right"
+          data-confirm="ต้องการลบตู้ {{ cab_name }} ทั้งตู้จริง ๆ ใช่ไหม?">
+      <button class="secondary danger">🗑 ลบตู้นี้</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<form class="card" method="post" action="/cabinet">
+  <h2>➕ เพิ่มตู้ชุดใหม่</h2>
+  <div class="cabform">
+    <div><label>ชื่อตู้</label><input type="text" name="name" maxlength="4" required placeholder="B"></div>
+    <div><label>จำนวนแถว</label><input type="number" name="rows" min="1" max="50" value="{{ default_rows }}"></div>
+    <div><label>ช่องต่อแถว</label><input type="number" name="cols" min="1" max="50" value="{{ default_cols }}"></div>
+    <div><label>ความจุ/ลิ้นชัก (ถุง)</label><input type="number" name="capacity" min="1" value="12"></div>
+    <div><button>เพิ่มตู้</button></div>
+  </div>
+</form>
+
+<div class="legend">
+  {% for c in cats.values() %}<span class="chip" style="background:{{ c.color }}">{{ c.code }} {{ c.name_th }}</span>{% endfor %}
+</div>
+<script src="/static/out.js?v=6"></script>
+<script>
+// โหมดการแตะช่อง: เบิกใช้ / ดูข้อมูลไอซี (จำค่าไว้ในเครื่อง)
+const MODE_KEY = "ic_map_tap";
+let mode = "out";
+try { mode = localStorage.getItem(MODE_KEY) || "out"; } catch (e) { /* โหมดส่วนตัว */ }
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll("#tapMode button").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
+  try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* ไม่เป็นไร */ }
+}
+document.querySelectorAll("#tapMode button").forEach((b) => b.onclick = () => setMode(b.dataset.m));
+setMode(mode);
+
+document.querySelectorAll(".drawer[data-items]").forEach((a) => a.addEventListener("click", (e) => {
+  if (a.closest(".cabcard").classList.contains("editing")) return;
+  e.preventDefault();
+  const loc = a.dataset.loc;
+  const raw = JSON.parse(a.dataset.items);
+  const tile = e.target.closest(".tile[data-pid]");          // แตะที่รูปไอซีตัวไหน = เลือกตัวนั้น
+  const pid = tile ? +tile.dataset.pid : (raw.length === 1 ? raw[0].id : 0);
+  if (mode === "info") {                                      // ดูข้อมูล: ไอซีตัวเดียว/แตะรูป -> หน้าไอซี ; หลายตัว -> หน้าช่อง
+    location.href = pid ? "/part/" + pid : "/loc/" + loc;
+    return;
+  }
+  const items = raw.map((it) => ({ part_id: it.id, mpn: it.mpn, image: it.image, qty: it.qty }));
+  OutSheet.open(items, {
+    loc, pid, title: "เบิกจากช่อง " + loc,
+    note: items.length > 1 ? "เลือกเบอร์" : "",
+    onDone: (r) => {  // อัปเดตตัวเลขทันทีโดยไม่โหลดหน้าใหม่ (ปุ่มยกเลิกยังอยู่)
+      const list = JSON.parse(a.dataset.items);
+      list.forEach((it) => { if (it.id === r.part_id) it.qty = r.left_here; });
+      a.dataset.items = JSON.stringify(list);
+      a.querySelector(".dq").textContent = list.reduce((s, it) => s + it.qty, 0);
+      const tile = a.querySelector('.tile[data-pid="' + r.part_id + '"]');
+      const tq = tile && tile.querySelector(".tq");
+      if (tq) tq.textContent = r.left_here;
+      if (tile && r.left_here <= 0) tile.classList.add("out0");  // หมดช่อง: จางไว้ หายไปเมื่อโหลดหน้าครั้งหน้า
+    },
+    onUndo: (r) => { location.href = "/map?msg=" + encodeURIComponent(r.msg); },
+  });
+}));
+
+// เรียลไทม์: อีกเครื่องเบิก/รับของ -> ตัวเลขบนแผนผังเปลี่ยนเอง ; มีเบอร์เข้า/ออกจากช่อง -> วาดแผนผังใหม่ (เมื่อว่าง)
+Live.on(async () => {
+  const st = await (await fetch("/api/map-state", { cache: "no-store" })).json();
+  const anchors = [...document.querySelectorAll("a.drawer")];
+  const codes = anchors.map((a) => a.getAttribute("href").replace("/loc/", ""));
+  let structural = codes.length !== Object.keys(st.drawers).length;
+  anchors.forEach((a, i) => {
+    const now = st.drawers[codes[i]];
+    if (!now) { structural = true; return; }
+    const cur = a.dataset.items ? JSON.parse(a.dataset.items).filter((it) => it.qty > 0) : [];
+    const ids = (l) => l.map((it) => it.id).sort().join(",");
+    if (ids(cur) !== ids(now)) { structural = true; return; }
+    if (!now.length) return;
+    const list = JSON.parse(a.dataset.items);
+    list.forEach((it) => { const n = now.find((x) => x.id === it.id); it.qty = n ? n.qty : 0; });
+    a.dataset.items = JSON.stringify(list);
+    a.querySelector(".dq").textContent = list.reduce((sum, it) => sum + it.qty, 0);
+    list.forEach((it) => {
+      const tq = a.querySelector('.tile[data-pid="' + it.id + '"] .tq');
+      if (tq) tq.textContent = it.qty;
+    });
+  });
+  if (structural) Live.reloadWhenIdle();
+});
+</script>
+{% endblock %}
