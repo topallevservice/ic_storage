@@ -551,3 +551,11 @@ dialog.sheet { border-radius: 20px; }
 .drawer .pics .tile > .tn { position: absolute; left: 0; right: 0; top: 0; padding: 1px 3px; font-size: 9px; font-weight: 700; line-height: 1.2;
   color: #fff; background: rgba(0, 0, 0, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 700px) { .drawer .pics .tile > .tn { font-size: 7.5px; padding: 0 2px; } }
+
+/* v30: ลิงก์ตำแหน่ง -> แผนผัง + ไฮไลต์ช่อง */
+a.loc { text-decoration: none; }
+.locw { font-size: 15px; color: var(--ev-ink, inherit); margin-left: 4px; }
+.maplink { display: inline-block; margin-top: 6px; font-weight: 600; }
+.drawer.hl { outline: 4px solid #ff6b00; outline-offset: 2px; animation: hlblink .8s ease-in-out 4; position: relative; z-index: 2; }
+@keyframes hlblink { 50% { outline-color: transparent; } }
+.drawer .code .cabl { background: var(--ev-ink, #123); color: #fff; border-radius: 4px; padding: 0 4px; }

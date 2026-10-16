@@ -32,7 +32,7 @@
           <a class="drawer" href="/loc/{{ d.code }}"
              {% if n %}data-loc="{{ d.code }}" data-items='{{ items|tojson }}'{% endif %}
              style="{% if cat %}border-color: {{ cat.color }}; background: {{ cat.color }}14{% endif %}">
-            <span class="dhead"><span class="code">R{{ d.row }}-C{{ d.col }}</span>
+            <span class="dhead"><span class="code"><b class="cabl">{{ d.cabinet }}</b>-R{{ d.row }}-C{{ d.col }}</span>
               {% if n %}<b class="dq" title="จำนวนไอซีในช่องนี้">{{ d.qty }}</b>{% endif %}</span>
             {% if cat %}<span class="chip" style="background:{{ cat.color }}; align-self:flex-start">{{ cat.code }}</span>{% endif %}
             {% if n %}
@@ -166,5 +166,19 @@ Live.on(async () => {
   });
   if (structural) Live.reloadWhenIdle();
 });
+
+// มาจากหน้ารับของ (/map?hl=C-R6-C1) -> เลื่อนไปช่องนั้น + กะพริบให้เห็น (กันดูผิดตู้)
+(() => {
+  const code = new URLSearchParams(location.search).get("hl");
+  const a = code && document.querySelector('.drawer[href="/loc/' + CSS.escape(code) + '"]');
+  if (!a) return;
+  a.classList.add("hl");
+  // รูปโหลดทีหลังดันหน้าเลื่อน -> เลื่อนซ้ำจนรูปโหลดครบ (หยุดถ้าผู้ใช้เลื่อนเอง)
+  let user = false;
+  ["touchstart", "wheel"].forEach((ev) => addEventListener(ev, () => (user = true), { once: true, passive: true }));
+  const go = () => user || a.scrollIntoView({ block: "center" });
+  go(); [300, 900, 1800].forEach((t) => setTimeout(go, t)); addEventListener("load", go);
+  setTimeout(() => a.classList.remove("hl"), 6000);
+})();
 </script>
 {% endblock %}

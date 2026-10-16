@@ -75,7 +75,7 @@
   <div class="step" style="margin-top:14px"><b>3</b> จำนวน / ตำแหน่ง</div>
   <div class="grid2">
     <div><label>จำนวน</label>
-      <input type="number" name="qty" id="f_qty" min="0" required class="bigin"></div>
+      <input type="number" name="qty" id="f_qty" min="1" required inputmode="numeric" class="bigin"></div>
     <div>
       <label>ตำแหน่ง</label>
       <div id="lockedBox" class="locked" hidden></div>
@@ -127,7 +127,7 @@
     {% for r in recent %}
     <tr><td>{% if r.image %}<img class="thumb" src="/images/t_{{ r.image }}" alt="">{% endif %}</td>
       <td><a href="/part/{{ r.part_id }}"><b>{{ r.mpn }}</b></a><div class="muted">{{ r.category }} · {{ r.supplier }}</div></td>
-      <td>{{ r.qty }}</td><td><span class="loc {{ 'wait' if r.loc_code == staging }}">{{ r.loc_code|locname }}</span></td>
+      <td>{{ r.qty }}</td><td>{% if r.loc_code == staging %}<span class="loc wait">{{ r.loc_code|locname }}</span>{% else %}<a class="loc" href="/map?hl={{ r.loc_code }}">{{ r.loc_code }}</a>{% endif %}</td>
       <td><a class="btn mini secondary" href="/lot/{{ r.id }}/edit">✏️</a></td></tr>
     {% endfor %}
   </table></div>
@@ -135,5 +135,5 @@
 
 <script>const CATS = {{ cats_json|safe }};</script>
 <script src="/static/sortable.js?v=1"></script>
-<script src="/static/intake.js?v=16"></script>
+<script src="/static/intake.js?v=17"></script>
 {% endblock %}

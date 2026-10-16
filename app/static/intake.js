@@ -21,7 +21,7 @@ function renderDup(item) {
             '<label class="dupok"><input type="checkbox" name="dup_ok" value="1" id="f_dup_ok"> เป็นถุงใหม่จริง — บันทึกเพิ่ม</label></div>';
   }
   if (item.existing) {
-    const where = item.locked_loc ? '<span class="loc">📍 ' + esc(item.locked_loc) + "</span>"
+    const where = item.locked_loc ? locLink(item.locked_loc)
       : (item.waiting ? '<span class="loc wait">⏳ รอระบุช่อง</span>' : "ยังไม่มีช่อง");
     let note = "";
     if (item.matched_by === "supplier_pn") note = "จากเบอร์ผู้ขาย " + esc(item.supplier_pn);
@@ -79,6 +79,15 @@ function resetForm() {
   $("icStatus").textContent = "";
 }
 
+// "C-R6-C1" -> ตู้ C แถว 6 ช่อง 1 (กันดูผิดตู้) + ลิงก์ไปช่องนั้นในแผนผัง
+function locWords(code) {
+  const m = /^([^-]+)-R(\d+)-C(\d+)$/.exec(code || "");
+  return m ? '<span class="locw">ตู้ <b>' + esc(m[1]) + "</b> · แถว " + m[2] + " · ช่อง " + m[3] + "</span>" : "";
+}
+function locLink(code) {
+  return '<a class="loc" href="/map?hl=' + encodeURIComponent(code) + '">📍 ' + esc(code) + "</a>";
+}
+
 function setLocation(item) {
   const sel = $("f_location"), box = $("lockedBox");
   if (item.locked_loc) {
@@ -86,7 +95,8 @@ function setLocation(item) {
     sel.value = item.locked_loc;
     sel.hidden = true;
     box.hidden = false;
-    box.innerHTML = '<span class="loc" style="font-size:22px">📍 ' + item.locked_loc + "</span><div>" + item.locked_note + "</div>";
+    box.innerHTML = '<span class="loc" style="font-size:22px">📍 ' + esc(item.locked_loc) + "</span> " + locWords(item.locked_loc) +
+      "<div>" + esc(item.locked_note) + '</div><a class="maplink" href="/map?hl=' + encodeURIComponent(item.locked_loc) + '">🗺 ดูช่องนี้ในแผนผังตู้</a>';
     $("sugg").textContent = "";
   } else {
     sel.hidden = false;
@@ -146,7 +156,7 @@ function fill(item) {
     const el = $("f_" + k);
     if (el && item[k] !== undefined && item[k] !== null) el.value = item[k];
   }
-  if (item.qty !== null && item.qty !== undefined) $("f_qty").value = item.qty;
+  if (item.qty) $("f_qty").value = item.qty;   // 0 / ไม่รู้ = ให้กรอกเอง
   if (item.category) $("f_category").value = item.category;
   $("f_raw").value = item.source === "LCSC-QR" || item.source === "ECIA-DM" ? item.raw : "";
   current = item;

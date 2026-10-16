@@ -542,6 +542,8 @@ def intake_save(mpn: str = Form(...), qty: int = Form(...), category: str = Form
     mpn = mpn.strip()
     if not mpn:
         return RedirectResponse("/intake?warn=ต้องใส่เบอร์ MPN", status_code=303)
+    if qty < 1:
+        return RedirectResponse("/intake?warn=ไม่ได้บันทึก — ต้องใส่จำนวนอย่างน้อย 1 ชิ้น", status_code=303)
     with connect() as con:
         if raw_code and not dup_ok:
             dup = con.execute("SELECT 1 FROM stock_lots WHERE raw_code=? AND raw_code<>''", (raw_code,)).fetchone()
