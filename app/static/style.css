@@ -540,3 +540,14 @@ dialog.sheet { border-radius: 20px; }
 .clink { margin: 6px 0; font-size: 18px; color: var(--ev-ink); word-break: break-all; }
 .clink.big { font-size: 22px; }
 .ctips { margin: 6px 0 0; padding-left: 20px; line-height: 1.9; }
+
+/* v27: งานรับของค้าง (กลับมาทำต่อ) */
+.pendbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 55; width: min(520px, calc(100vw - 24px));
+  background: linear-gradient(90deg, #FC6337, #F99F23); color: #fff !important; border-radius: 14px; padding: 12px 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.25); font-weight: 700; text-align: center; text-decoration: none; }
+
+/* v28: ช่องที่มีหลายเบอร์ -> แสดงชื่อทุกเบอร์ (เดิมแสดงแค่ "2 ไอซี") + ชื่อบนรูปแต่ละรูป */
+.drawer .pname.multi { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: normal; overflow-wrap: anywhere; }
+.drawer .pics .tile > .tn { position: absolute; left: 0; right: 0; top: 0; padding: 1px 3px; font-size: 9px; font-weight: 700; line-height: 1.2;
+  color: #fff; background: rgba(0, 0, 0, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 700px) { .drawer .pics .tile > .tn { font-size: 7.5px; padding: 0 2px; } }

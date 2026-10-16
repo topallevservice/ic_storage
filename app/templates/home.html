@@ -92,14 +92,8 @@ function showList(items) {
   });
 }
 
-async function post(url, body, btn) {
-  btn && btn.classList.add("busy");
-  try {
-    const r = await fetch(url, { method: "POST", body });
-    if (!r.ok) throw new Error("เซิร์ฟเวอร์ตอบ " + r.status);
-    return await r.json();
-  } finally { btn && btn.classList.remove("busy"); }
-}
+// ส่งรูปแบบทนสายหลุด (ลองซ้ำเอง 1 ครั้ง + มีเวลาจำกัด) — ดู Net ใน ui.js
+const post = (url, body, btn) => Net.json(url, body, { btn });
 
 // ผลสแกนฉลาก -> การ์ดเบอร์ในคลัง (กด เบิก / ข้อมูล ต่อได้ทันที)
 async function fromScan(items) {

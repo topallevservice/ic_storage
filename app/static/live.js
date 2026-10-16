@@ -52,20 +52,35 @@
     body.classList.remove("offline");
   }
 
+  function heard(rev) {
+    lastHeard = Date.now();
+    online();
+    if (!rev) return;
+    if (known === null) { known = rev; return; }
+    if (rev <= known) return;   // รุ่นเดียวกับที่หน้านี้แสดงอยู่แล้ว (หรือเลขเก่าที่มาช้า) = ไม่ต้องทำอะไร
+    known = rev;
+    changed(rev);
+  }
+
+  // ถามเลขรุ่นตรง ๆ ครั้งเดียว (ไม่พึ่งสายค้าง): iPhone ตัดสาย /api/events เงียบ ๆ ตอนสลับแอป/ล็อกจอ
+  // -> กลับมาที่หน้านี้ / สายเงียบ -> ถามเอง แผนผังจะได้ไม่ค้างข้อมูลเก่า
+  let polling = false;
+  async function poll() {
+    if (polling || document.hidden) return;
+    polling = true;
+    try {
+      const t = await (await fetch("/api/events?lifetime=0.2", { cache: "no-store" })).text();
+      const m = t.match(/data: (\d+)/);
+      if (m) heard(parseInt(m[1], 10));
+    } catch (e) { /* ออฟไลน์ — รอบหน้าค่อยถามใหม่ */ }
+    finally { polling = false; }
+  }
+
   function connect() {
     if (!window.EventSource || es || document.hidden) return;
     es = new EventSource("/api/events");
     lastHeard = Date.now();
-    es.onmessage = (e) => {
-      lastHeard = Date.now();
-      online();
-      const rev = parseInt(e.data, 10);
-      if (!rev) return;
-      if (known === null) { known = rev; return; }
-      if (rev <= known) return;   // รุ่นเดียวกับที่หน้านี้แสดงอยู่แล้ว (หรือเลขเก่าที่มาช้า) = ไม่ต้องทำอะไร
-      known = rev;
-      changed(rev);
-    };
+    es.onmessage = (e) => heard(parseInt(e.data, 10));
     es.onopen = () => { lastHeard = Date.now(); online(); };
     es.onerror = () => {
       // สายหลุด/เซิร์ฟเวอร์ปิดตามรอบ: เบราว์เซอร์ต่อใหม่เองใน ~1.5 วิ — แจ้งเฉพาะเมื่อต่อไม่ได้นานจริง
@@ -80,13 +95,16 @@
   }
 
   // แท็บถูกซ่อน (สลับแอป/แท็บ, ล็อกจอ) -> ปิดสาย ; กลับมา -> ต่อใหม่ (ข้อความแรกบอกว่าพลาดอะไรไปหรือไม่)
-  document.addEventListener("visibilitychange", () => (document.hidden ? disconnect() : connect()));
+  document.addEventListener("visibilitychange", () => (document.hidden ? disconnect() : (connect(), poll())));
   window.addEventListener("pagehide", disconnect);
-  window.addEventListener("pageshow", connect);
+  window.addEventListener("pageshow", () => { connect(); poll(); });
+  window.addEventListener("focus", poll);
   window.addEventListener("online", () => { disconnect(); connect(); });
   // สายเงียบผิดปกติ (เซิร์ฟเวอร์ส่งสัญญาณทุก 10 วิ) -> ตัดแล้วต่อใหม่
   setInterval(() => {
-    if (es && !document.hidden && Date.now() - lastHeard > 30000) { disconnect(); connect(); }
+    if (document.hidden) return;
+    if (Date.now() - lastHeard > 12000) poll();                 // สายเงียบเกินรอบสัญญาณชีพ (10 วิ) -> ถามเอง
+    if (es && Date.now() - lastHeard > 30000) { disconnect(); connect(); }
   }, 5000);
 
   window.Live = {

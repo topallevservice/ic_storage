@@ -41,7 +41,7 @@ with TestClient(app) as c:
 
     # 2) ปุ่มย้อนกลับ: ทุกหน้ายกเว้นหน้าแรก + หน้าสำรอง
     home = c.get("/").text
-    assert 'id="backBtn"' not in home and "/static/ui.js?v=1" in home
+    assert 'id="backBtn"' not in home and "/static/ui.js?v=4" in home
     for url, fb in [(f"/part/{pid}", "/"), ("/map", "/"), ("/loc/A-R1-C1", "/map"), (f"/lot/{lot}/edit", "/intake"),
                     ("/putaway", "/map"), ("/intake", "/"), ("/labels", "/")]:
         t = c.get(url).text

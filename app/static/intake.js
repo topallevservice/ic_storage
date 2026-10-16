@@ -6,6 +6,8 @@ let images = [];
 const FIELDS = ["mpn", "manufacturer", "description", "package", "supplier", "supplier_pn", "lot", "date_code", "order_no", "coo", "marking"];
 
 let current = null;  // ข้อมูลถุงที่กำลังรับเข้า (รวมผลตรวจซ้ำจากเซิร์ฟเวอร์)
+const DRAFT = "ic_intake_draft";   // งานที่ทำค้าง (ดูท้ายไฟล์)
+let restoring = false;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- ตรวจซ้ำ: รู้ตั้งแต่สแกนฉลาก ----------
@@ -117,6 +119,7 @@ function renderImages() {
   $("icBtn").hidden = images.length >= MAX_IMAGES;
   $("icBtn").textContent = images.length ? "📷 เพิ่มรูป (" + images.length + "/" + MAX_IMAGES + ")" : "📷 ถ่ายรูปตัวไอซี";
   $("icHint").hidden = images.length < 2;
+  saveDraft();
 }
 
 // กดค้างแล้วลากเพื่อเรียงรูป — รูปแรกเป็นรูปหลัก
@@ -161,6 +164,7 @@ function fill(item) {
   if (!item.mpn) $("f_mpn").focus();
   else $("f_qty").focus();
   $("form").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!restoring) { $("form").dataset.rid = Net.newId(); saveDraft(); }
 }
 
 function showCandidates(item) {
@@ -216,8 +220,7 @@ async function parseText() {
   if (!text.trim()) return;
   const fd = new FormData();
   fd.append("text", text);
-  const r = await fetch("/api/parse", { method: "POST", body: fd });
-  const data = await r.json();
+  const data = await Net.json("/api/parse", fd);
   fill(data.items[0]);
   $("status").textContent = "✅" + dupStatus(data.items[0]);
   $("scan").value = "";
@@ -231,33 +234,11 @@ $("f_mpn").addEventListener("change", () => lookup($("f_mpn").value));
 for (const k of FIELDS.concat(["category"])) $("f_" + k).addEventListener("input", updateSummary);
 $("f_qty").addEventListener("input", updateDupTotal);
 
-// ส่งรูปขึ้นเซิร์ฟเวอร์: มีเวลาจำกัด (ไม่ค้างรอตลอดไป) + ล็อกปุ่มระหว่างทำงาน (กันกดซ้ำจนคิวยาว)
-async function postPhoto(url, file, btn, ms = 60000) {
+// ส่งรูปขึ้นเซิร์ฟเวอร์: มีเวลาจำกัด + ลองส่งซ้ำเองเมื่อสายหลุด + ล็อกปุ่มระหว่างทำงาน (ดู Net ใน ui.js)
+function postPhoto(url, file, btn, ms = 60000) {
   const fd = new FormData();
   fd.append("photo", file);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  btn.classList.add("busy");
-  try {
-    let r;
-    for (let i = 0; ; i++) {
-      try { r = await fetch(url, { method: "POST", body: fd, signal: ctrl.signal }); break; }
-      catch (err) {
-        // สายสะดุด/Wi-Fi หลุดชั่วครู่: ลองส่งซ้ำเอง 1 ครั้ง (รูปยังอยู่ในเครื่อง ไม่ต้องถ่ายใหม่)
-        if (err.name === "AbortError" || i >= 1) throw err;
-        await new Promise((ok) => setTimeout(ok, 1500));
-      }
-    }
-    if (!r.ok) throw new Error("เซิร์ฟเวอร์ตอบ " + r.status);
-    return await r.json();
-  } catch (err) {
-    if (err.name === "AbortError") throw new Error("หมดเวลา — เช็ก Wi-Fi");
-    if (err instanceof TypeError) throw new Error("ส่งไม่ถึงเซิร์ฟเวอร์ — เช็ก Wi-Fi แล้วถ่ายใหม่");
-    throw err;
-  } finally {
-    clearTimeout(timer);
-    btn.classList.remove("busy");
-  }
+  return Net.json(url, fd, { btn, ms });
 }
 
 $("photo").addEventListener("change", async () => {
@@ -416,3 +397,63 @@ function barcodesEmpty() {
     coo: "", description: "", package: "", raw: "", source: "CHIP", candidates: [], existing: false, images: [], similar: [],
     category: "OTH" };
 }
+
+// ---------- จำงานที่ทำค้าง (สายหลุด / แอปถูกปิด / มือถือดับ -> เปิดหน้านี้ใหม่ได้งานเดิมกลับมา) ----------
+// เก็บในเครื่องนี้ (localStorage) ; ลบเมื่อบันทึกสำเร็จ (ui.js ลบตาม data-draft ของฟอร์ม) หรือผู้ใช้กดทิ้ง
+
+function saveDraft() {
+  if (restoring || $("form").hidden || !current || $("form").dataset.saved) return;
+  const f = {};
+  for (const el of $("form").elements) {
+    if (!el.name || el.type === "file") continue;
+    f[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  }
+  try {
+    localStorage.setItem(DRAFT, JSON.stringify({ t: Date.now(), rid: $("form").dataset.rid, current, images, f }));
+  } catch (e) { /* โหมดส่วนตัว/พื้นที่เต็ม — ทำงานต่อได้ แค่ไม่จำ */ }
+}
+$("form").addEventListener("input", saveDraft);
+$("form").addEventListener("change", saveDraft);
+window.addEventListener("pagehide", saveDraft);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveDraft(); });
+
+async function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) { /* ข้อมูลเสีย */ }
+  if (!d || !d.current || Date.now() - d.t > 12 * 3600e3) return;
+  restoring = true;
+  try {
+    fill(d.current);
+    // ยอด/ตำแหน่งในคลังอาจเปลี่ยนระหว่างที่ค้างไว้ -> ถามเซิร์ฟเวอร์ใหม่ (ผลตรวจถุงซ้ำจากฉลากคงเดิม)
+    if (d.current.mpn) {
+      try {
+        const it = await (await fetch("/api/lookup?mpn=" + encodeURIComponent(d.current.mpn))).json();
+        for (const k of ["existing", "stock_qty", "stock_bags", "waiting", "part_id", "locked_loc", "locked_note"]) current[k] = it[k];
+        renderDup(current);
+        if (current.locked_loc) setLocation(current);
+      } catch (e) { /* ออฟไลน์อยู่ — ใช้ข้อมูลเดิม */ }
+    }
+    const els = $("form").elements;
+    for (const [k, v] of Object.entries(d.f || {})) {
+      const el = els.namedItem(k);
+      if (!el || el instanceof RadioNodeList) continue;
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+    }
+    images = d.images || [];
+    renderImages();
+    if (d.f && d.f.photo) $("preview").innerHTML = '<img src="/photos/' + encodeURIComponent(d.f.photo) + '">';
+    $("form").dataset.rid = d.rid || Net.newId();   // รหัสเดิม = ถ้าครั้งก่อนบันทึกไปแล้วจริง เซิร์ฟเวอร์จะไม่บันทึกซ้ำ
+    updateSummary(); updateDupTotal(); updateSaveBtn();
+  } finally { restoring = false; }
+  saveDraft();
+  const at = new Date(d.t).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  $("status").innerHTML = "↩ กู้งานที่ค้างไว้ (" + at + ") — ตรวจแล้วกดบันทึก " +
+    '<button type="button" class="mini secondary danger" id="dropDraft">🗑 ทิ้งงานนี้</button>';
+  $("dropDraft").onclick = () => {
+    if (!confirm("ต้องการทิ้งงานที่ค้างไว้ (" + (d.current.mpn || "ไม่มี MPN") + ") จริง ๆ ใช่ไหม?")) return;
+    $("form").dataset.saved = "1";   // ตอนปิดหน้าไม่ต้องจำกลับมาอีก
+    try { localStorage.removeItem(DRAFT); } catch (e) { /* ไม่เป็นไร */ }
+    location.href = "/intake";
+  };
+}
+restoreDraft();

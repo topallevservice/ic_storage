@@ -17,7 +17,7 @@
   <form method="post" action="/part/{{ p.id }}/image" enctype="multipart/form-data" class="gimg add">
     <input type="hidden" name="back" value="{{ back }}">
     <label>📷<br>เพิ่มรูป<br><span class="muted">({{ imgs|length }}/{{ max_images }})</span>
-      <input type="file" name="photo" accept="image/*" capture="environment" hidden onchange="this.form.submit()"></label>
+      <input type="file" name="photo" accept="image/*" capture="environment" hidden onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()"></label>
   </form>
   {% endif %}
 </div>

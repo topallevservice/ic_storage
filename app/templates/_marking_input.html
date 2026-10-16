@@ -23,7 +23,7 @@
     btn.disabled = true; btn.classList.add("busy"); msg.textContent = "⏳ กำลังอ่าน...";
     try {
       const fd = new FormData(); fd.append("files", btn.dataset.files);
-      const r = await (await fetch("/api/read-marking", { method: "POST", body: fd })).json();
+      const r = await Net.json("/api/read-marking", fd);
       if (!r.chip_text) { msg.textContent = "❌ อ่านไม่ได้ — พิมพ์เอง"; return; }
       if (inp.value.trim() && inp.value.trim() !== r.chip_text && !confirm("แทนที่ข้อความเดิมด้วยที่อ่านได้?\n\n" + r.chip_text)) {
         msg.textContent = "อ่านได้: " + r.chip_text + " (ไม่ได้แทนที่)";
@@ -33,7 +33,7 @@
       inp.dispatchEvent(new Event("input", { bubbles: true }));
       msg.textContent = "✅ ตรวจกับตัวจริง แล้วกดบันทึก";
     } catch (e) {
-      msg.textContent = "❌ ส่งไม่สำเร็จ — เช็ก Wi-Fi";
+      msg.textContent = "❌ " + e.message;
     } finally { btn.disabled = false; btn.classList.remove("busy"); }
   };
 })();

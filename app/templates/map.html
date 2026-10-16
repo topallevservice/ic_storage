@@ -42,11 +42,11 @@
             <span class="pics g{{ g }}">
               {% for it in shown %}
                 <span class="tile" title="{{ it.mpn }}" data-pid="{{ it.id }}">{% if it.image %}<img src="/images/c_{{ it.image }}" alt="{{ it.mpn }}" loading="lazy">
-                {% else %}<span class="noimg">{{ it.mpn }}</span>{% endif %}{% if n > 1 %}<span class="tq">{{ it.qty }}</span>{% endif %}</span>
+                {% else %}<span class="noimg">{{ it.mpn }}</span>{% endif %}{% if n > 1 %}<span class="tq">{{ it.qty }}</span>{% if it.image and n <= 4 %}<span class="tn">{{ it.mpn }}</span>{% endif %}{% endif %}</span>
               {% endfor %}
               {% if n > 9 %}<span class="tile"><span class="more">+{{ n - 8 }}</span></span>{% endif %}
             </span>
-            <span class="pname">{% if n == 1 %}{{ items[0].mpn }}{% else %}{{ n }} ไอซี{% endif %}</span>
+            <span class="pname{{ ' multi' if n > 1 }}">{% if n == 1 %}{{ items[0].mpn }}{% else %}{{ items|map(attribute='mpn')|join(' · ') }}{% endif %}</span>
             {% endif %}
           </a>
           {% if not d['items'] %}

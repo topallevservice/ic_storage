@@ -51,6 +51,54 @@ class NoCacheAPI:
 
 app.add_middleware(NoCacheAPI)
 
+
+class OnceOnly:
+    """ส่งซ้ำด้วยรหัสคำขอเดิม (หัว X-Req-Id) -> ตอบผลเดิม ไม่บันทึกซ้ำ
+    มือถือสายหลุดหลังเซิร์ฟเวอร์บันทึกไปแล้ว แต่ไม่ได้รับคำตอบ -> หน้าเว็บลองส่งใหม่เอง/ผู้ใช้กดบันทึกซ้ำ ได้อย่างปลอดภัย
+    (รหัสเปลี่ยนเมื่อข้อมูลในฟอร์มเปลี่ยน — ดู Net ใน ui.js) ; เขียนเป็น ASGI ล้วน"""
+    TTL, MAX = 24 * 3600, 5000
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.done: OrderedDict = OrderedDict()   # rid -> (เวลา, ข้อความตอบกลับทั้งหมด)
+        self.running: dict = {}                  # rid -> asyncio.Event (คำขอแรกยังทำอยู่)
+
+    async def __call__(self, scope, receive, send):
+        rid = ""
+        if scope["type"] == "http" and scope["method"] == "POST":
+            rid = dict(scope["headers"]).get(b"x-req-id", b"").decode("latin-1")[:80]
+        if not rid:
+            return await self.inner(scope, receive, send)
+        while rid in self.running:              # คำขอแรกยังทำไม่เสร็จ -> รอผลของมัน
+            await self.running[rid].wait()
+        t = time.monotonic()
+        while self.done and (len(self.done) > self.MAX or t - next(iter(self.done.values()))[0] > self.TTL):
+            self.done.popitem(last=False)
+        if rid in self.done:
+            for m in self.done[rid][1]:
+                await send(m)
+            return
+        ev = self.running[rid] = asyncio.Event()
+        msgs = []
+
+        async def send2(m):
+            msgs.append(m)
+            try:
+                await send(m)
+            except Exception:   # มือถือหลุดไปแล้ว — เก็บผลไว้ตอบตอนส่งซ้ำ
+                pass
+        try:
+            await self.inner(scope, receive, send2)
+            if msgs and msgs[0]["type"] == "http.response.start" and msgs[0]["status"] < 500 \
+                    and sum(len(m.get("body", b"")) for m in msgs) < 512_000:
+                self.done[rid] = (time.monotonic(), msgs)
+        finally:
+            del self.running[rid]
+            ev.set()
+
+
+app.add_middleware(OnceOnly)
+
 # ---------------- อัปเดตเรียลไทม์ ----------------
 # เธรดเบื้องหลัง 1 ตัว: อ่านเลขรุ่นข้อมูล (rev) ทุก 0.5 วิ ให้หน้าจอที่เปิดค้างรู้ว่าต้องอัปเดต,
 # ซิงก์ datasheet ที่เปลี่ยนเข้า Database ทุก 3 วิ, สร้างดัชนี datasheet ใหม่เมื่อยอดเปลี่ยน (หน่วง 10 วิ)

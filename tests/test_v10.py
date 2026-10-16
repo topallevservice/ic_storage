@@ -39,7 +39,7 @@ with TestClient(app) as c:
 
     # 3) หน้าเว็บโหลดสคริปต์รุ่นใหม่ (มือถือไม่ใช้ไฟล์เก่าใน cache)
     t = c.get("/").text
-    assert "/static/live.js?v=2" in t and "/static/out.js?v=6" in t
+    assert "/static/live.js?v=3" in t and "/static/out.js?v=6" in t
 
 js = (ROOT / "app/static/live.js").read_text(encoding="utf-8")
 assert "rev <= known" in js, "ต้องไม่สนเลขรุ่นที่เก่ากว่า/เท่ากับที่แสดงอยู่"

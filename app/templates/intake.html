@@ -23,7 +23,7 @@
   </details>
 </div>
 
-<form class="card found" method="post" action="/intake" id="form" hidden>
+<form class="card found" method="post" action="/intake" id="form" data-draft="ic_intake_draft" hidden>
   <!-- ตรวจซ้ำตั้งแต่สแกนฉลาก: ถุงซ้ำ / เบอร์ซ้ำ (ใส่ช่องเดิม เพิ่มจำนวน) / เบอร์ใกล้เคียง -->
   <div id="dupBox"></div>
 
@@ -135,5 +135,5 @@
 
 <script>const CATS = {{ cats_json|safe }};</script>
 <script src="/static/sortable.js?v=1"></script>
-<script src="/static/intake.js?v=13"></script>
+<script src="/static/intake.js?v=16"></script>
 {% endblock %}
